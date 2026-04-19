@@ -1,0 +1,349 @@
+[
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.522,
+    "leg0_time": 2.091,
+    "t_offboard": 8.596,
+    "max_spd": 10.439,
+    "sustain_med_spd": 8.933,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 0
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.518,
+    "leg0_time": 2.049,
+    "t_offboard": 8.39,
+    "max_spd": 10.274,
+    "sustain_med_spd": 8.893,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 1
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.551,
+    "leg0_time": 2.094,
+    "t_offboard": 8.398,
+    "max_spd": 10.358,
+    "sustain_med_spd": 8.889,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 1
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.284,
+    "leg0_time": 2.007,
+    "t_offboard": 7.616,
+    "max_spd": 10.381,
+    "sustain_med_spd": 8.897,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 2
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.483,
+    "leg0_time": 2.05,
+    "t_offboard": 8.497,
+    "max_spd": 10.385,
+    "sustain_med_spd": 8.926,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 2
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.587,
+    "leg0_time": 2.091,
+    "t_offboard": 8.395,
+    "max_spd": 10.301,
+    "sustain_med_spd": 8.908,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 3
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.501,
+    "leg0_time": 2.224,
+    "t_offboard": 9.157,
+    "max_spd": 10.275,
+    "sustain_med_spd": 8.879,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 3
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.434,
+    "leg0_time": 2.206,
+    "t_offboard": 9.244,
+    "max_spd": 10.257,
+    "sustain_med_spd": 8.906,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 4
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.602,
+    "leg0_time": 2.224,
+    "t_offboard": 8.484,
+    "max_spd": 10.269,
+    "sustain_med_spd": 8.806,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 4
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.331,
+    "leg0_time": 2.049,
+    "t_offboard": 7.525,
+    "max_spd": 10.512,
+    "sustain_med_spd": 8.907,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 5
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 12.383,
+    "leg0_time": 2.09,
+    "t_offboard": 8.284,
+    "max_spd": 10.258,
+    "sustain_med_spd": 8.931,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 5
+  },
+  {
+    "completed": false,
+    "error": "timeout",
+    "arm": "control_ceil95",
+    "course": "technical",
+    "trial": 6
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.436,
+    "leg0_time": 2.191,
+    "t_offboard": 9.036,
+    "max_spd": 10.314,
+    "sustain_med_spd": 8.872,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 6
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.254,
+    "leg0_time": 2.125,
+    "t_offboard": 8.361,
+    "max_spd": 10.217,
+    "sustain_med_spd": 8.72,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 7
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.283,
+    "leg0_time": 2.185,
+    "t_offboard": 8.996,
+    "max_spd": 10.273,
+    "sustain_med_spd": 8.83,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 7
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.317,
+    "leg0_time": 2.205,
+    "t_offboard": 8.944,
+    "max_spd": 10.238,
+    "sustain_med_spd": 8.807,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 8
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.36,
+    "leg0_time": 2.175,
+    "t_offboard": 8.982,
+    "max_spd": 10.221,
+    "sustain_med_spd": 8.843,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 8
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.45,
+    "leg0_time": 2.204,
+    "t_offboard": 9.1,
+    "max_spd": 10.233,
+    "sustain_med_spd": 8.861,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 9
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.452,
+    "leg0_time": 2.191,
+    "t_offboard": 9.151,
+    "max_spd": 10.346,
+    "sustain_med_spd": 8.893,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 9
+  },
+  {
+    "arm": "control_ceil95",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.432,
+    "leg0_time": 2.185,
+    "t_offboard": 9.046,
+    "max_spd": 10.257,
+    "sustain_med_spd": 8.795,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 10
+  },
+  {
+    "arm": "treatment_ceil100",
+    "course": "technical",
+    "completed": true,
+    "lap_time": 13.482,
+    "leg0_time": 2.203,
+    "t_offboard": 9.861,
+    "max_spd": 10.407,
+    "sustain_med_spd": 8.906,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 10
+  }
+]

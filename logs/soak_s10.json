@@ -1,0 +1,296 @@
+[
+  {
+    "completed": true,
+    "lap_time": 24.584,
+    "leg0_time": 3.769,
+    "t_offboard": 10.033,
+    "max_spd": 10.927,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 0
+  },
+  {
+    "completed": true,
+    "lap_time": 24.536,
+    "leg0_time": 3.693,
+    "t_offboard": 10.024,
+    "max_spd": 10.796,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 1
+  },
+  {
+    "completed": true,
+    "lap_time": 24.938,
+    "leg0_time": 3.814,
+    "t_offboard": 10.042,
+    "max_spd": 10.919,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 2
+  },
+  {
+    "completed": false,
+    "lap_time": 90.007,
+    "leg0_time": null,
+    "t_offboard": 10.023,
+    "max_spd": 1.314,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 3
+  },
+  {
+    "completed": true,
+    "lap_time": 24.556,
+    "leg0_time": 3.737,
+    "t_offboard": 10.035,
+    "max_spd": 10.901,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 4
+  },
+  {
+    "completed": true,
+    "lap_time": 24.533,
+    "leg0_time": 3.746,
+    "t_offboard": 10.044,
+    "max_spd": 10.958,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 5
+  },
+  {
+    "completed": true,
+    "lap_time": 24.597,
+    "leg0_time": 3.71,
+    "t_offboard": 10.032,
+    "max_spd": 10.834,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 6
+  },
+  {
+    "completed": true,
+    "lap_time": 24.553,
+    "leg0_time": 3.728,
+    "t_offboard": 10.043,
+    "max_spd": 10.924,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 7
+  },
+  {
+    "completed": true,
+    "lap_time": 23.209,
+    "leg0_time": 3.764,
+    "t_offboard": 10.011,
+    "max_spd": 10.905,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 8
+  },
+  {
+    "completed": true,
+    "lap_time": 22.666,
+    "leg0_time": 3.443,
+    "t_offboard": 10.023,
+    "max_spd": 10.893,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 9
+  },
+  {
+    "completed": true,
+    "lap_time": 22.761,
+    "leg0_time": 3.474,
+    "t_offboard": 10.007,
+    "max_spd": 10.85,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 10
+  },
+  {
+    "completed": true,
+    "lap_time": 22.595,
+    "leg0_time": 3.46,
+    "t_offboard": 10.016,
+    "max_spd": 10.837,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 11
+  },
+  {
+    "completed": true,
+    "lap_time": 22.599,
+    "leg0_time": 3.439,
+    "t_offboard": 10.014,
+    "max_spd": 10.836,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 12
+  },
+  {
+    "completed": true,
+    "lap_time": 22.626,
+    "leg0_time": 3.431,
+    "t_offboard": 10.012,
+    "max_spd": 10.963,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 13
+  },
+  {
+    "completed": true,
+    "lap_time": 23.125,
+    "leg0_time": 3.811,
+    "t_offboard": 10.011,
+    "max_spd": 10.824,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 14
+  },
+  {
+    "completed": true,
+    "lap_time": 24.421,
+    "leg0_time": 3.743,
+    "t_offboard": 10.019,
+    "max_spd": 10.915,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 15
+  },
+  {
+    "completed": true,
+    "lap_time": 24.383,
+    "leg0_time": 3.698,
+    "t_offboard": 10.008,
+    "max_spd": 10.95,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 16
+  },
+  {
+    "completed": true,
+    "lap_time": 24.462,
+    "leg0_time": 3.699,
+    "t_offboard": 10.02,
+    "max_spd": 10.93,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 17
+  },
+  {
+    "completed": true,
+    "lap_time": 24.493,
+    "leg0_time": 3.671,
+    "t_offboard": 10.025,
+    "max_spd": 10.817,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 18
+  },
+  {
+    "completed": true,
+    "lap_time": 24.487,
+    "leg0_time": 3.706,
+    "t_offboard": 10.025,
+    "max_spd": 10.951,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 19
+  },
+  {
+    "completed": true,
+    "lap_time": 24.4,
+    "leg0_time": 3.762,
+    "t_offboard": 10.021,
+    "max_spd": 10.94,
+    "health": {
+      "connected": true,
+      "telemetry": true,
+      "position_ok": true,
+      "armable": true
+    },
+    "trial": 20
+  }
+]

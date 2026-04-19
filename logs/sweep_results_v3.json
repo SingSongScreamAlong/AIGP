@@ -1,0 +1,542 @@
+[
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 0.8,
+    "threshold": 1.5,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 4.42,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 0.8,
+    "threshold": 2.0,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 4.44,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 0.8,
+    "threshold": 2.5,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 3.86,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 1.2,
+    "threshold": 1.5,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 4.22,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 1.2,
+    "threshold": 2.0,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 3.72,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 1.2,
+    "threshold": 2.5,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 3.57,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 1.8,
+    "threshold": 1.5,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 4.01,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 1.8,
+    "threshold": 2.0,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 3.81,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 1.8,
+    "threshold": 2.5,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 3.32,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 2.5,
+    "threshold": 1.5,
+    "max_speed": 8.0,
+    "gates_passed": 0,
+    "lap_time": null,
+    "success": false
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 2.5,
+    "threshold": 2.0,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 3.6,
+    "success": true
+  },
+  {
+    "cruise_speed": 6.0,
+    "blend_radius": 2.5,
+    "threshold": 2.5,
+    "max_speed": 8.0,
+    "gates_passed": 4,
+    "lap_time": 3.2,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 0.8,
+    "threshold": 1.5,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.64,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 0.8,
+    "threshold": 2.0,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.42,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 0.8,
+    "threshold": 2.5,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.21,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 1.2,
+    "threshold": 1.5,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.67,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 1.2,
+    "threshold": 2.0,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.33,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 1.2,
+    "threshold": 2.5,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.15,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 1.8,
+    "threshold": 1.5,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.57,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 1.8,
+    "threshold": 2.0,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.35,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 1.8,
+    "threshold": 2.5,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 2.98,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 2.5,
+    "threshold": 1.5,
+    "max_speed": 9.0,
+    "gates_passed": 0,
+    "lap_time": null,
+    "success": false
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 2.5,
+    "threshold": 2.0,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 3.19,
+    "success": true
+  },
+  {
+    "cruise_speed": 7.0,
+    "blend_radius": 2.5,
+    "threshold": 2.5,
+    "max_speed": 9.0,
+    "gates_passed": 4,
+    "lap_time": 2.88,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 0.8,
+    "threshold": 1.5,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 3.36,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 0.8,
+    "threshold": 2.0,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 3.17,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 0.8,
+    "threshold": 2.5,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 2.96,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 1.2,
+    "threshold": 1.5,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 3.34,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 1.2,
+    "threshold": 2.0,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 3.05,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 1.2,
+    "threshold": 2.5,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 3.01,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 1.8,
+    "threshold": 1.5,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 3.22,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 1.8,
+    "threshold": 2.0,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 3.09,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 1.8,
+    "threshold": 2.5,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 2.74,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 2.5,
+    "threshold": 1.5,
+    "max_speed": 10.0,
+    "gates_passed": 0,
+    "lap_time": null,
+    "success": false
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 2.5,
+    "threshold": 2.0,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 2.9,
+    "success": true
+  },
+  {
+    "cruise_speed": 8.0,
+    "blend_radius": 2.5,
+    "threshold": 2.5,
+    "max_speed": 10.0,
+    "gates_passed": 4,
+    "lap_time": 2.64,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 0.8,
+    "threshold": 1.5,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 3.17,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 0.8,
+    "threshold": 2.0,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 3.07,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 0.8,
+    "threshold": 2.5,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 2.84,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 1.2,
+    "threshold": 1.5,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 3.17,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 1.2,
+    "threshold": 2.0,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 2.9,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 1.2,
+    "threshold": 2.5,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 2.8,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 1.8,
+    "threshold": 1.5,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 3.01,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 1.8,
+    "threshold": 2.0,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 2.78,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 1.8,
+    "threshold": 2.5,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 2.62,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 2.5,
+    "threshold": 1.5,
+    "max_speed": 11.0,
+    "gates_passed": 0,
+    "lap_time": null,
+    "success": false
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 2.5,
+    "threshold": 2.0,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 2.67,
+    "success": true
+  },
+  {
+    "cruise_speed": 9.0,
+    "blend_radius": 2.5,
+    "threshold": 2.5,
+    "max_speed": 11.0,
+    "gates_passed": 4,
+    "lap_time": 2.56,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 0.8,
+    "threshold": 1.5,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.99,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 0.8,
+    "threshold": 2.0,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.98,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 0.8,
+    "threshold": 2.5,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.74,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 1.2,
+    "threshold": 1.5,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.88,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 1.2,
+    "threshold": 2.0,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.78,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 1.2,
+    "threshold": 2.5,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.67,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 1.8,
+    "threshold": 1.5,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.73,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 1.8,
+    "threshold": 2.0,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.66,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 1.8,
+    "threshold": 2.5,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.59,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 2.5,
+    "threshold": 1.5,
+    "max_speed": 12.0,
+    "gates_passed": 0,
+    "lap_time": null,
+    "success": false
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 2.5,
+    "threshold": 2.0,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.47,
+    "success": true
+  },
+  {
+    "cruise_speed": 10.0,
+    "blend_radius": 2.5,
+    "threshold": 2.5,
+    "max_speed": 12.0,
+    "gates_passed": 4,
+    "lap_time": 2.34,
+    "success": true
+  }
+]

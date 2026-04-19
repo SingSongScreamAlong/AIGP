@@ -1,0 +1,34 @@
+
+================================================================================
+A/B HEAD-TO-HEAD RESULTS: MST=9 PR=0.50 vs PR=0.55
+================================================================================
+
+Config             | Course     |   N |  Median |    Mean |  StdDev |     Min |     Max |   Worst
+-----------------------------------------------------------------------------------------------
+MST=9_PR=0.50      | sprint     |   9 |   44.30 |   44.41 |   0.223 |   44.24 |   44.87 |   44.87
+MST=9_PR=0.50      | technical  |  10 |   18.04 |   18.04 |   0.039 |   17.98 |   18.10 |   18.10
+MST=9_PR=0.50      | mixed      |  10 |   31.65 |   30.56 |   1.496 |   28.80 |   31.80 |   31.80
+
+MST=9_PR=0.55      | sprint     |  10 |   44.51 |   44.56 |   0.275 |   44.21 |   44.97 |   44.97
+MST=9_PR=0.55      | technical  |  10 |   18.05 |   18.06 |   0.071 |   17.96 |   18.21 |   18.21
+MST=9_PR=0.55      | mixed      |  10 |   31.69 |   30.61 |   1.491 |   28.84 |   31.85 |   31.85
+
+
+================================================================================
+DECISION ANALYSIS
+================================================================================
+
+    SPRINT: PR=0.55 vs PR=0.50 → median +0.21s, stddev +0.052s, worst-case +0.10s
+ TECHNICAL: PR=0.55 vs PR=0.50 → median +0.01s, stddev +0.032s, worst-case +0.12s
+     MIXED: PR=0.55 vs PR=0.50 → median +0.05s, stddev -0.005s, worst-case +0.05s
+
+OUTLIER COUNT (> median + 2*sd):
+  MST=9_PR=0.50: 1 outliers across all courses
+  MST=9_PR=0.55: 1 outliers across all courses
+
+PROMOTION RULE CHECK:
+  Sprint clearly better (>0.5s)?     NO (delta=+0.21s)
+  Mixed median not worse (<=+0.5s)?   YES (delta=+0.05s)
+  Mixed stddev not worse (<=+0.3s)?   YES (delta=-0.005s)
+
+  >>> VERDICT: KEEP PR=0.50 as baseline

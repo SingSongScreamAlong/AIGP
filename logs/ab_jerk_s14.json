@@ -1,0 +1,816 @@
+[
+  {
+    "course": "technical",
+    "trial": 0,
+    "arm": "control_jerk30",
+    "completed": true,
+    "lap_time": 13.723,
+    "leg0_time": 2.179,
+    "sustain_med_spd": 8.413,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.1785,
+        "spd": 7.659
+      },
+      {
+        "gate": 1,
+        "time": 3.431,
+        "spd": 8.067
+      },
+      {
+        "gate": 2,
+        "time": 4.6787,
+        "spd": 9.424
+      },
+      {
+        "gate": 3,
+        "time": 5.8718,
+        "spd": 8.476
+      },
+      {
+        "gate": 4,
+        "time": 6.8793,
+        "spd": 9.762
+      },
+      {
+        "gate": 5,
+        "time": 8.0731,
+        "spd": 7.722
+      },
+      {
+        "gate": 6,
+        "time": 9.0215,
+        "spd": 10.144
+      },
+      {
+        "gate": 7,
+        "time": 10.0634,
+        "spd": 9.733
+      },
+      {
+        "gate": 8,
+        "time": 10.8147,
+        "spd": 9.067
+      },
+      {
+        "gate": 9,
+        "time": 12.0084,
+        "spd": 7.113
+      },
+      {
+        "gate": 10,
+        "time": 12.9315,
+        "spd": 9.445
+      },
+      {
+        "gate": 11,
+        "time": 13.7225,
+        "spd": 8.162
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 1,
+    "arm": "control_jerk30",
+    "completed": true,
+    "lap_time": 13.658,
+    "leg0_time": 2.167,
+    "sustain_med_spd": 8.679,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.1672,
+        "spd": 7.956
+      },
+      {
+        "gate": 1,
+        "time": 3.5693,
+        "spd": 7.602
+      },
+      {
+        "gate": 2,
+        "time": 4.7957,
+        "spd": 9.41
+      },
+      {
+        "gate": 3,
+        "time": 5.8954,
+        "spd": 9.541
+      },
+      {
+        "gate": 4,
+        "time": 6.8879,
+        "spd": 9.303
+      },
+      {
+        "gate": 5,
+        "time": 8.0056,
+        "spd": 8.451
+      },
+      {
+        "gate": 6,
+        "time": 8.9108,
+        "spd": 10.226
+      },
+      {
+        "gate": 7,
+        "time": 9.936,
+        "spd": 9.788
+      },
+      {
+        "gate": 8,
+        "time": 10.691,
+        "spd": 8.916
+      },
+      {
+        "gate": 9,
+        "time": 11.9611,
+        "spd": 7.292
+      },
+      {
+        "gate": 10,
+        "time": 12.9099,
+        "spd": 9.529
+      },
+      {
+        "gate": 11,
+        "time": 13.6585,
+        "spd": 7.911
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 1,
+    "arm": "treatment_jerk45",
+    "completed": true,
+    "lap_time": 13.612,
+    "leg0_time": 2.151,
+    "sustain_med_spd": 8.769,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.1505,
+        "spd": 7.947
+      },
+      {
+        "gate": 1,
+        "time": 3.5971,
+        "spd": 7.699
+      },
+      {
+        "gate": 2,
+        "time": 4.7407,
+        "spd": 9.478
+      },
+      {
+        "gate": 3,
+        "time": 5.8814,
+        "spd": 9.59
+      },
+      {
+        "gate": 4,
+        "time": 6.8359,
+        "spd": 9.43
+      },
+      {
+        "gate": 5,
+        "time": 7.9812,
+        "spd": 8.37
+      },
+      {
+        "gate": 6,
+        "time": 8.8646,
+        "spd": 10.3
+      },
+      {
+        "gate": 7,
+        "time": 9.8814,
+        "spd": 9.769
+      },
+      {
+        "gate": 8,
+        "time": 10.6294,
+        "spd": 9.035
+      },
+      {
+        "gate": 9,
+        "time": 11.8943,
+        "spd": 7.147
+      },
+      {
+        "gate": 10,
+        "time": 12.8373,
+        "spd": 9.425
+      },
+      {
+        "gate": 11,
+        "time": 13.6118,
+        "spd": 8.186
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 2,
+    "arm": "control_jerk30",
+    "completed": true,
+    "lap_time": 13.647,
+    "leg0_time": 2.172,
+    "sustain_med_spd": 8.668,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.172,
+        "spd": 7.998
+      },
+      {
+        "gate": 1,
+        "time": 3.6168,
+        "spd": 7.611
+      },
+      {
+        "gate": 2,
+        "time": 4.8093,
+        "spd": 9.471
+      },
+      {
+        "gate": 3,
+        "time": 5.954,
+        "spd": 9.481
+      },
+      {
+        "gate": 4,
+        "time": 6.8797,
+        "spd": 9.438
+      },
+      {
+        "gate": 5,
+        "time": 8.0424,
+        "spd": 8.404
+      },
+      {
+        "gate": 6,
+        "time": 8.9447,
+        "spd": 10.164
+      },
+      {
+        "gate": 7,
+        "time": 9.9548,
+        "spd": 9.767
+      },
+      {
+        "gate": 8,
+        "time": 10.701,
+        "spd": 8.823
+      },
+      {
+        "gate": 9,
+        "time": 11.973,
+        "spd": 7.386
+      },
+      {
+        "gate": 10,
+        "time": 12.8561,
+        "spd": 9.52
+      },
+      {
+        "gate": 11,
+        "time": 13.6471,
+        "spd": 8.162
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 2,
+    "arm": "treatment_jerk45",
+    "completed": true,
+    "lap_time": 13.627,
+    "leg0_time": 2.18,
+    "sustain_med_spd": 8.781,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.1799,
+        "spd": 7.926
+      },
+      {
+        "gate": 1,
+        "time": 3.5586,
+        "spd": 7.602
+      },
+      {
+        "gate": 2,
+        "time": 4.7944,
+        "spd": 9.438
+      },
+      {
+        "gate": 3,
+        "time": 5.8943,
+        "spd": 9.666
+      },
+      {
+        "gate": 4,
+        "time": 6.8358,
+        "spd": 9.139
+      },
+      {
+        "gate": 5,
+        "time": 8.0217,
+        "spd": 8.56
+      },
+      {
+        "gate": 6,
+        "time": 8.8777,
+        "spd": 10.327
+      },
+      {
+        "gate": 7,
+        "time": 9.8922,
+        "spd": 9.725
+      },
+      {
+        "gate": 8,
+        "time": 10.6399,
+        "spd": 9.093
+      },
+      {
+        "gate": 9,
+        "time": 11.9543,
+        "spd": 7.228
+      },
+      {
+        "gate": 10,
+        "time": 12.8587,
+        "spd": 9.498
+      },
+      {
+        "gate": 11,
+        "time": 13.6267,
+        "spd": 8.098
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 3,
+    "arm": "control_jerk30",
+    "completed": true,
+    "lap_time": 17.074,
+    "leg0_time": 2.736,
+    "sustain_med_spd": 7.771,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.7359,
+        "spd": 6.733
+      },
+      {
+        "gate": 1,
+        "time": 4.2174,
+        "spd": 8.382
+      },
+      {
+        "gate": 2,
+        "time": 5.9879,
+        "spd": 7.623
+      },
+      {
+        "gate": 3,
+        "time": 7.3072,
+        "spd": 8.353
+      },
+      {
+        "gate": 4,
+        "time": 8.5218,
+        "spd": 8.062
+      },
+      {
+        "gate": 5,
+        "time": 10.0499,
+        "spd": 7.813
+      },
+      {
+        "gate": 6,
+        "time": 11.1319,
+        "spd": 8.144
+      },
+      {
+        "gate": 7,
+        "time": 12.4328,
+        "spd": 8.349
+      },
+      {
+        "gate": 8,
+        "time": 13.5574,
+        "spd": 7.769
+      },
+      {
+        "gate": 9,
+        "time": 15.0607,
+        "spd": 7.186
+      },
+      {
+        "gate": 10,
+        "time": 16.0838,
+        "spd": 7.815
+      },
+      {
+        "gate": 11,
+        "time": 17.0744,
+        "spd": 7.765
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 3,
+    "arm": "treatment_jerk45",
+    "completed": true,
+    "lap_time": 13.752,
+    "leg0_time": 2.2,
+    "sustain_med_spd": 8.609,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.1998,
+        "spd": 7.869
+      },
+      {
+        "gate": 1,
+        "time": 3.6103,
+        "spd": 7.616
+      },
+      {
+        "gate": 2,
+        "time": 4.8343,
+        "spd": 9.543
+      },
+      {
+        "gate": 3,
+        "time": 5.9811,
+        "spd": 9.144
+      },
+      {
+        "gate": 4,
+        "time": 6.928,
+        "spd": 9.469
+      },
+      {
+        "gate": 5,
+        "time": 8.144,
+        "spd": 7.826
+      },
+      {
+        "gate": 6,
+        "time": 9.093,
+        "spd": 10.304
+      },
+      {
+        "gate": 7,
+        "time": 10.1049,
+        "spd": 9.702
+      },
+      {
+        "gate": 8,
+        "time": 10.858,
+        "spd": 8.945
+      },
+      {
+        "gate": 9,
+        "time": 12.087,
+        "spd": 7.332
+      },
+      {
+        "gate": 10,
+        "time": 12.9661,
+        "spd": 9.628
+      },
+      {
+        "gate": 11,
+        "time": 13.7522,
+        "spd": 8.313
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 4,
+    "arm": "control_jerk30",
+    "completed": true,
+    "lap_time": 13.554,
+    "leg0_time": 2.169,
+    "sustain_med_spd": 8.766,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.169,
+        "spd": 7.798
+      },
+      {
+        "gate": 1,
+        "time": 3.6028,
+        "spd": 7.652
+      },
+      {
+        "gate": 2,
+        "time": 4.7473,
+        "spd": 9.834
+      },
+      {
+        "gate": 3,
+        "time": 5.892,
+        "spd": 8.858
+      },
+      {
+        "gate": 4,
+        "time": 6.8636,
+        "spd": 9.423
+      },
+      {
+        "gate": 5,
+        "time": 7.9642,
+        "spd": 8.827
+      },
+      {
+        "gate": 6,
+        "time": 8.9116,
+        "spd": 10.229
+      },
+      {
+        "gate": 7,
+        "time": 9.9174,
+        "spd": 9.79
+      },
+      {
+        "gate": 8,
+        "time": 10.7081,
+        "spd": 8.808
+      },
+      {
+        "gate": 9,
+        "time": 11.8863,
+        "spd": 7.344
+      },
+      {
+        "gate": 10,
+        "time": 12.8305,
+        "spd": 9.521
+      },
+      {
+        "gate": 11,
+        "time": 13.5543,
+        "spd": 8.417
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 4,
+    "arm": "treatment_jerk45",
+    "completed": true,
+    "lap_time": 13.665,
+    "leg0_time": 2.18,
+    "sustain_med_spd": 8.766,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.18,
+        "spd": 8.01
+      },
+      {
+        "gate": 1,
+        "time": 3.5904,
+        "spd": 7.63
+      },
+      {
+        "gate": 2,
+        "time": 4.7796,
+        "spd": 9.445
+      },
+      {
+        "gate": 3,
+        "time": 5.9281,
+        "spd": 9.728
+      },
+      {
+        "gate": 4,
+        "time": 6.8794,
+        "spd": 9.034
+      },
+      {
+        "gate": 5,
+        "time": 8.0546,
+        "spd": 8.663
+      },
+      {
+        "gate": 6,
+        "time": 8.9271,
+        "spd": 10.274
+      },
+      {
+        "gate": 7,
+        "time": 9.9461,
+        "spd": 9.762
+      },
+      {
+        "gate": 8,
+        "time": 10.693,
+        "spd": 9.036
+      },
+      {
+        "gate": 9,
+        "time": 11.9992,
+        "spd": 7.298
+      },
+      {
+        "gate": 10,
+        "time": 12.8943,
+        "spd": 9.435
+      },
+      {
+        "gate": 11,
+        "time": 13.6648,
+        "spd": 8.053
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 5,
+    "arm": "control_jerk30",
+    "completed": true,
+    "lap_time": 13.578,
+    "leg0_time": 2.155,
+    "sustain_med_spd": 8.856,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.1552,
+        "spd": 7.761
+      },
+      {
+        "gate": 1,
+        "time": 3.5825,
+        "spd": 7.692
+      },
+      {
+        "gate": 2,
+        "time": 4.6846,
+        "spd": 9.86
+      },
+      {
+        "gate": 3,
+        "time": 5.8474,
+        "spd": 9.025
+      },
+      {
+        "gate": 4,
+        "time": 6.8215,
+        "spd": 9.4
+      },
+      {
+        "gate": 5,
+        "time": 7.9692,
+        "spd": 9.004
+      },
+      {
+        "gate": 6,
+        "time": 8.8685,
+        "spd": 10.207
+      },
+      {
+        "gate": 7,
+        "time": 9.9231,
+        "spd": 9.802
+      },
+      {
+        "gate": 8,
+        "time": 10.6701,
+        "spd": 8.767
+      },
+      {
+        "gate": 9,
+        "time": 11.9024,
+        "spd": 7.376
+      },
+      {
+        "gate": 10,
+        "time": 12.8053,
+        "spd": 9.528
+      },
+      {
+        "gate": 11,
+        "time": 13.5775,
+        "spd": 8.566
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  },
+  {
+    "course": "technical",
+    "trial": 5,
+    "arm": "treatment_jerk45",
+    "completed": true,
+    "lap_time": 13.625,
+    "leg0_time": 2.16,
+    "sustain_med_spd": 8.786,
+    "gates_passed": 12,
+    "gate_events": [
+      {
+        "gate": 0,
+        "time": 2.1597,
+        "spd": 7.91
+      },
+      {
+        "gate": 1,
+        "time": 3.591,
+        "spd": 7.613
+      },
+      {
+        "gate": 2,
+        "time": 4.7846,
+        "spd": 9.414
+      },
+      {
+        "gate": 3,
+        "time": 5.929,
+        "spd": 9.66
+      },
+      {
+        "gate": 4,
+        "time": 6.8741,
+        "spd": 9.197
+      },
+      {
+        "gate": 5,
+        "time": 8.0152,
+        "spd": 8.537
+      },
+      {
+        "gate": 6,
+        "time": 8.9188,
+        "spd": 10.233
+      },
+      {
+        "gate": 7,
+        "time": 9.9282,
+        "spd": 9.784
+      },
+      {
+        "gate": 8,
+        "time": 10.6763,
+        "spd": 8.977
+      },
+      {
+        "gate": 9,
+        "time": 11.9507,
+        "spd": 7.38
+      },
+      {
+        "gate": 10,
+        "time": 12.8724,
+        "spd": 9.504
+      },
+      {
+        "gate": 11,
+        "time": 13.6255,
+        "spd": 8.227
+      }
+    ],
+    "bench_failure": false,
+    "error": null
+  }
+]

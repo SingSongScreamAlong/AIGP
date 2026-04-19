@@ -1,0 +1,111 @@
+execution_model_v1  --  fit report
+============================================================
+source: /Users/conradweeden/ai-grand-prix/logs/leg_telemetry.parquet
+rows total: 4889  runs total: 442
+truth rows: 3198  truth runs: 289
+non-leg0: 2909   leg0: 289
+cohort: run_ok & ~sleep_contaminated & ~is_placeholder & prestart_deterministic
+
+1. v_achieved(v_cmd, leg_len)  -- non-leg0 truth cohort
+   median avg_ach_speed per (leg_len x v_cmd) bin:
+   leg_len \ v_cmd        [0,5)       [5,7)       [7,8)       [8,9)     [9,9.5)    [9.5,10)   [10,10.5)   [10.5,11)     [11,12)
+          [0,8)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        7.21 (450)        -    (  0)
+         [8,12)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        7.27 ( 70)        -    (  7)        7.81 (543)        -    (  0)
+        [12,16)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        7.73 ( 42)        -    (  0)        8.34 (270)        -    (  0)
+        [16,20)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        7.04 ( 28)        -    (  0)        7.65 (180)        -    (  0)
+        [20,24)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        7.33 ( 14)        -    (  0)        7.77 (225)        -    (  0)
+        [24,30)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        9.06 (270)        -    (  0)
+        [30,45)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        9.40 (810)        -    (  0)
+
+   global quadratic fit v_ach = 3.626*v_cmd^2 + -73.854*v_cmd + 382.849   R^2=0.136  n=2909
+   linear v_ach = slope*v_cmd + int  per leg_length bin:
+            [0,8)  slope=-3.249  int=42.213  R^2=0.150  n=450
+           [8,12)  slope=0.502  int=2.397  R^2=0.272  n=620
+          [12,16)  slope=0.754  int=-0.317  R^2=0.064  n=312
+          [16,20)  slope=0.672  int=0.366  R^2=0.146  n=208
+          [20,24)  slope=0.582  int=1.507  R^2=0.602  n=239
+          [24,30)  slope=-12.621  int=145.460  R^2=0.881  n=270
+          [30,45)  slope=-12.739  int=147.158  R^2=0.168  n=810
+
+   underdelivery (v_cmd - v_ach) by v_cmd bin, non-leg0:
+     v_cmd=     [0,5)  n=   0  p10=   nan  p50=   nan  mean=   nan  p90=   nan
+     v_cmd=     [5,7)  n=   0  p10=   nan  p50=   nan  mean=   nan  p90=   nan
+     v_cmd=     [7,8)  n=   0  p10=   nan  p50=   nan  mean=   nan  p90=   nan
+     v_cmd=     [8,9)  n=   0  p10=   nan  p50=   nan  mean=   nan  p90=   nan
+     v_cmd=   [9,9.5)  n=   0  p10=   nan  p50=   nan  mean=   nan  p90=   nan
+     v_cmd=  [9.5,10)  n= 154  p10=2.110  p50=2.630  mean=2.653  p90=3.400
+     v_cmd= [10,10.5)  n=   7  p10=2.700  p50=2.710  mean=2.710  p90=2.720
+     v_cmd= [10.5,11)  n=2748  p10=1.220  p50=2.850  mean=2.609  p90=3.700
+     v_cmd=   [11,12)  n=   0  p10=   nan  p50=   nan  mean=   nan  p90=   nan
+
+2. Launch proxy  -- leg0 truth cohort
+   avg_ach = 1.031*v_cmd + -3.363  R^2=0.995  n=289
+   avg_ach = 0.136*leg_len + 1.421  R^2=0.953  n=289
+   leg0 avg_ach by leg_length:
+            [0,8)  n=   0  p50=   nan  mean=   nan  p90=   nan
+           [8,12)  n=  50  p50=2.210  mean=2.221  p90=2.281
+          [12,16)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [16,20)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [20,24)  n= 104  p50=4.470  mean=4.457  p90=4.530
+          [24,30)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [30,45)  n= 135  p50=5.380  mean=5.384  p90=5.436
+   leg0 max_ach by leg_length:
+            [0,8)  n=   0  p50=   nan  mean=   nan  p90=   nan
+           [8,12)  n=  50  p50=6.135  mean=6.146  p90=6.261
+          [12,16)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [16,20)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [20,24)  n= 104  p50=8.260  mean=8.171  p90=8.290
+          [24,30)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [30,45)  n= 135  p50=8.270  mean=8.384  p90=8.750
+   leg0 gate_time by leg_length:
+            [0,8)  n=   0  p50=   nan  mean=   nan  p90=   nan
+           [8,12)  n=  50  p50=2.722  mean=2.729  p90=2.809
+          [12,16)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [16,20)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [20,24)  n= 104  p50=4.521  mean=4.542  p90=4.688
+          [24,30)  n=   0  p50=   nan  mean=   nan  p90=   nan
+          [30,45)  n= 135  p50=5.986  mean=5.992  p90=6.066
+
+3. Decel envelope / pre-turn behavior
+   median avg_ach per (v_cmd x turn_deg) bin:
+   v_cmd \ turn_deg     [0,15)     [15,30)     [30,45)     [45,60)     [60,90)    [90,180)
+          [0,4)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [4,6)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [6,7)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [7,8)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [8,9)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+         [9,10)          5.96 ( 14)        6.81 ( 28)        7.32 ( 56)        7.73 ( 14)        7.83 ( 28)        7.20 ( 14)
+        [10,12)          7.67 (275)        7.57 (635)        8.33 (815)        7.31 (340)        8.18 (280)        7.78 (410)
+
+   median preturn_onset_ratio per (v_cmd x turn_deg) bin:
+   (higher = planner started slowing sooner / more conservative)
+   v_cmd \ turn_deg     [0,15)     [15,30)     [30,45)     [45,60)     [60,90)    [90,180)
+          [0,4)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [4,6)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [6,7)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [7,8)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+          [8,9)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+         [9,10)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+        [10,12)          -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)        -    (  0)
+
+   underdelivery = 0.000*turn_deg + 2.610  R^2=0.000  n=2909
+
+4. Effective accel proxy = (max_ach - min_ach) / sustain_s
+   non-leg0: n=2909  median=0.371  p90=1.195
+   leg0    : n=240  median=2.587
+   non-leg0 accel_eff by avg_ach_speed:
+     v_ach=     [0,4)  n=   0  p50=   nan  mean=   nan
+     v_ach=     [4,6)  n=  13  p50=1.238  mean=1.254
+     v_ach=     [6,7)  n= 177  p50=1.367  mean=1.295
+     v_ach=     [7,8)  n=1412  p50=0.461  mean=0.595
+     v_ach=     [8,9)  n= 632  p50=0.325  mean=0.439
+     v_ach=    [9,10)  n= 675  p50=0.170  mean=0.222
+     v_ach=   [10,12)  n=   0  p50=   nan  mean=   nan
+   leg0 accel_eff by leg_length:
+            [0,8)  n=   0  p50=   nan  mean=   nan
+           [8,12)  n=   1  p50=32.200  mean=32.200
+          [12,16)  n=   0  p50=   nan  mean=   nan
+          [16,20)  n=   0  p50=   nan  mean=   nan
+          [20,24)  n= 104  p50=4.010  mean=3.923
+          [24,30)  n=   0  p50=   nan  mean=   nan
+          [30,45)  n= 135  p50=2.467  mean=2.484

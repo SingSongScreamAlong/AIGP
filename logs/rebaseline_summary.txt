@@ -1,0 +1,61 @@
+
+================================================================================
+RE-BASELINE RESULTS: DETERMINISTIC PRE-START
+Config: V6_MST9_PR050_PRESTART
+================================================================================
+
+--- SPRINT ---
+  Completed: 18/20  Failed: 2
+  Median: 40.006s  Mean: 42.302s  SD: 3.539s
+  Min: 39.730s  Max: 51.657s  Range: 11.927s
+  All: [39.73, 39.758, 39.807, 39.852, 39.876, 39.889, 39.935, 40.0, 40.006, 40.006, 41.517, 42.936, 43.145, 43.184, 45.432, 46.025, 48.689, 51.657]
+  Gate 0: median=5.732s  sd=0.494s  range=1.562s
+  Startup: median=9.384s  range=9.304-10.661s
+  Failures:
+    run=2 error=unknown (startup=12.172)
+    run=7 error=timeout_or_crash
+
+--- TECHNICAL ---
+  Completed: 19/20  Failed: 1
+  Median: 16.233s  Mean: 17.248s  SD: 2.860s
+  Min: 16.020s  Max: 28.733s  Range: 12.713s
+  All: [16.02, 16.078, 16.123, 16.146, 16.15, 16.162, 16.189, 16.23, 16.233, 16.233, 16.239, 16.239, 16.999, 17.181, 17.273, 17.426, 17.863, 18.186, 28.733]
+  Gate 0: median=2.743s  sd=2.564s  range=11.381s
+  Startup: median=9.348s  range=8.960-9.781s
+  Failures:
+    run=4 error=timeout_or_crash
+
+--- MIXED ---
+  Completed: 19/20  Failed: 1
+  Median: 28.235s  Mean: 30.456s  SD: 4.696s
+  Min: 28.044s  Max: 46.297s  Range: 18.253s
+  All: [28.044, 28.045, 28.052, 28.062, 28.066, 28.138, 28.149, 28.193, 28.225, 28.235, 28.291, 29.556, 29.949, 29.993, 30.038, 30.234, 34.198, 38.893, 46.297]
+  Gate 0: median=4.435s  sd=0.567s  range=1.972s
+  Startup: median=9.359s  range=9.308-10.617s
+  Failures:
+    run=6 error=arm_fail: <AioRpcError of RPC that terminated with:
+	status = StatusCode.UNAVAILABLE
+	details = "recvmsg:Connection reset by peer"
+	debug_error_string = "UNKNOWN:Error received from peer  {grpc_status:14, grpc_message:"recvmsg:Connection reset by peer"}"
+> (startup=?)
+
+================================================================================
+NEW BASELINE SUMMARY
+================================================================================
+
+Course          N     Median       SD        Min        Max    G0 SD   Completion
+--------------------------------------------------------------------------------
+sprint         18     40.006    3.539     39.730     51.657    0.494  18/20 (90%)
+technical      19     16.233    2.860     16.020     28.733    2.564  19/20 (95%)
+mixed          19     28.235    4.696     28.044     46.297    0.567  19/20 (95%)
+
+================================================================================
+COMPARISON vs OLD A/B BASELINES (pre-deterministic startup)
+================================================================================
+
+Course          Old Med    New Med      Delta   Old SD   New SD   SD Delta
+--------------------------------------------------------------------------------
+sprint           44.302     40.006     -4.296    0.223    3.539     +3.316
+technical        18.039     16.233     -1.806    0.039    2.860     +2.821
+mixed            31.646     28.235     -3.411    1.496    4.696     +3.199
+

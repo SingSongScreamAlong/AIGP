@@ -1,0 +1,560 @@
+[
+  {
+    "profile": "aggressive",
+    "completed": true,
+    "gates": 12,
+    "total": 12,
+    "time": 32.542,
+    "gate_times": [
+      5.398921012878418,
+      8.299392938613892,
+      10.476003885269165,
+      12.694870948791504,
+      15.954851865768433,
+      19.140010118484497,
+      21.216211080551147,
+      23.09688401222229,
+      25.354795217514038,
+      27.200926065444946,
+      29.472805976867676,
+      32.54200506210327
+    ],
+    "splits": [
+      5.399,
+      2.9,
+      2.177,
+      2.219,
+      3.26,
+      3.185,
+      2.076,
+      1.881,
+      2.258,
+      1.846,
+      2.272,
+      3.069
+    ],
+    "tracking": {
+      "overall": {
+        "avg_err": 4.62,
+        "max_err": 14.03,
+        "avg_cmd": 9.69,
+        "avg_ach": 6.41,
+        "max_ach": 7.99,
+        "pk_acc": 21.28,
+        "util": 0.661
+      },
+      "legs": [
+        {
+          "gate": 1,
+          "dur": 5.399,
+          "entry_spd": 6.88,
+          "avg_cmd": 9.91,
+          "avg_ach": 3.62,
+          "max_ach": 6.93,
+          "avg_err": 6.318,
+          "pk_acc": 6.41,
+          "util": 0.366
+        },
+        {
+          "gate": 2,
+          "dur": 2.9,
+          "entry_spd": 7.63,
+          "avg_cmd": 9.78,
+          "avg_ach": 7.21,
+          "max_ach": 7.83,
+          "avg_err": 3.322,
+          "pk_acc": 9.41,
+          "util": 0.738
+        },
+        {
+          "gate": 3,
+          "dur": 2.177,
+          "entry_spd": 7.46,
+          "avg_cmd": 9.49,
+          "avg_ach": 7.61,
+          "max_ach": 7.99,
+          "avg_err": 3.579,
+          "pk_acc": 14.72,
+          "util": 0.801
+        },
+        {
+          "gate": 4,
+          "dur": 2.219,
+          "entry_spd": 7.43,
+          "avg_cmd": 9.59,
+          "avg_ach": 7.18,
+          "max_ach": 7.91,
+          "avg_err": 6.155,
+          "pk_acc": 16.59,
+          "util": 0.749
+        },
+        {
+          "gate": 5,
+          "dur": 3.26,
+          "entry_spd": 7.06,
+          "avg_cmd": 9.88,
+          "avg_ach": 6.7,
+          "max_ach": 7.43,
+          "avg_err": 5.107,
+          "pk_acc": 17.54,
+          "util": 0.678
+        },
+        {
+          "gate": 6,
+          "dur": 3.185,
+          "entry_spd": 7.78,
+          "avg_cmd": 9.85,
+          "avg_ach": 7.5,
+          "max_ach": 7.89,
+          "avg_err": 2.674,
+          "pk_acc": 3.8,
+          "util": 0.761
+        },
+        {
+          "gate": 7,
+          "dur": 2.076,
+          "entry_spd": 7.63,
+          "avg_cmd": 9.74,
+          "avg_ach": 7.68,
+          "max_ach": 7.94,
+          "avg_err": 3.728,
+          "pk_acc": 9.06,
+          "util": 0.788
+        },
+        {
+          "gate": 8,
+          "dur": 1.881,
+          "entry_spd": 6.91,
+          "avg_cmd": 9.76,
+          "avg_ach": 7.08,
+          "max_ach": 7.63,
+          "avg_err": 5.55,
+          "pk_acc": 13.25,
+          "util": 0.726
+        },
+        {
+          "gate": 9,
+          "dur": 2.258,
+          "entry_spd": 6.92,
+          "avg_cmd": 9.8,
+          "avg_ach": 6.75,
+          "max_ach": 7.03,
+          "avg_err": 4.082,
+          "pk_acc": 9.61,
+          "util": 0.689
+        },
+        {
+          "gate": 10,
+          "dur": 1.846,
+          "entry_spd": 7.11,
+          "avg_cmd": 9.71,
+          "avg_ach": 6.96,
+          "max_ach": 7.29,
+          "avg_err": 3.294,
+          "pk_acc": 6.54,
+          "util": 0.717
+        },
+        {
+          "gate": 11,
+          "dur": 2.272,
+          "entry_spd": 5.49,
+          "avg_cmd": 8.38,
+          "avg_ach": 6.75,
+          "max_ach": 7.11,
+          "avg_err": 3.678,
+          "pk_acc": 10.13,
+          "util": 0.806
+        },
+        {
+          "gate": 12,
+          "dur": 3.069,
+          "entry_spd": 6.88,
+          "avg_cmd": 9.9,
+          "avg_ach": 5.55,
+          "max_ach": 6.89,
+          "avg_err": 5.904,
+          "pk_acc": 21.28,
+          "util": 0.561
+        }
+      ]
+    },
+    "params": {
+      "max_speed": 12.0,
+      "cruise_speed": 10.0,
+      "base_blend": 2.5,
+      "threshold": 2.5
+    }
+  },
+  {
+    "profile": "balanced",
+    "completed": true,
+    "gates": 12,
+    "total": 12,
+    "time": 34.512,
+    "gate_times": [
+      5.756054162979126,
+      8.645255088806152,
+      10.969666957855225,
+      13.233381986618042,
+      17.18601393699646,
+      20.549450159072876,
+      23.141829013824463,
+      24.945376873016357,
+      26.88158082962036,
+      29.056519031524658,
+      31.14179491996765,
+      34.512235164642334
+    ],
+    "splits": [
+      5.756,
+      2.889,
+      2.324,
+      2.264,
+      3.953,
+      3.363,
+      2.592,
+      1.804,
+      1.936,
+      2.175,
+      2.085,
+      3.37
+    ],
+    "tracking": {
+      "overall": {
+        "avg_err": 4.041,
+        "max_err": 13.0,
+        "avg_cmd": 8.86,
+        "avg_ach": 6.03,
+        "max_ach": 7.51,
+        "pk_acc": 20.6,
+        "util": 0.681
+      },
+      "legs": [
+        {
+          "gate": 1,
+          "dur": 5.756,
+          "entry_spd": 6.34,
+          "avg_cmd": 8.93,
+          "avg_ach": 3.77,
+          "max_ach": 6.37,
+          "avg_err": 5.166,
+          "pk_acc": 5.86,
+          "util": 0.422
+        },
+        {
+          "gate": 2,
+          "dur": 2.889,
+          "entry_spd": 7.26,
+          "avg_cmd": 8.92,
+          "avg_ach": 6.77,
+          "max_ach": 7.28,
+          "avg_err": 2.643,
+          "pk_acc": 10.79,
+          "util": 0.759
+        },
+        {
+          "gate": 3,
+          "dur": 2.324,
+          "entry_spd": 7.17,
+          "avg_cmd": 8.64,
+          "avg_ach": 7.22,
+          "max_ach": 7.51,
+          "avg_err": 3.06,
+          "pk_acc": 10.31,
+          "util": 0.836
+        },
+        {
+          "gate": 4,
+          "dur": 2.264,
+          "entry_spd": 6.89,
+          "avg_cmd": 8.84,
+          "avg_ach": 6.66,
+          "max_ach": 7.25,
+          "avg_err": 6.398,
+          "pk_acc": 17.41,
+          "util": 0.754
+        },
+        {
+          "gate": 5,
+          "dur": 3.953,
+          "entry_spd": 6.41,
+          "avg_cmd": 8.94,
+          "avg_ach": 6.09,
+          "max_ach": 6.89,
+          "avg_err": 4.218,
+          "pk_acc": 15.84,
+          "util": 0.681
+        },
+        {
+          "gate": 6,
+          "dur": 3.363,
+          "entry_spd": 7.16,
+          "avg_cmd": 8.95,
+          "avg_ach": 6.8,
+          "max_ach": 7.19,
+          "avg_err": 2.424,
+          "pk_acc": 3.48,
+          "util": 0.759
+        },
+        {
+          "gate": 7,
+          "dur": 2.592,
+          "entry_spd": 7.21,
+          "avg_cmd": 8.82,
+          "avg_ach": 7.14,
+          "max_ach": 7.3,
+          "avg_err": 2.894,
+          "pk_acc": 7.95,
+          "util": 0.81
+        },
+        {
+          "gate": 8,
+          "dur": 1.804,
+          "entry_spd": 6.55,
+          "avg_cmd": 8.95,
+          "avg_ach": 6.64,
+          "max_ach": 7.21,
+          "avg_err": 4.979,
+          "pk_acc": 12.57,
+          "util": 0.743
+        },
+        {
+          "gate": 9,
+          "dur": 1.936,
+          "entry_spd": 6.4,
+          "avg_cmd": 8.95,
+          "avg_ach": 6.34,
+          "max_ach": 6.55,
+          "avg_err": 3.915,
+          "pk_acc": 7.7,
+          "util": 0.708
+        },
+        {
+          "gate": 10,
+          "dur": 2.175,
+          "entry_spd": 6.65,
+          "avg_cmd": 8.86,
+          "avg_ach": 6.52,
+          "max_ach": 6.66,
+          "avg_err": 3.119,
+          "pk_acc": 4.85,
+          "util": 0.736
+        },
+        {
+          "gate": 11,
+          "dur": 2.085,
+          "entry_spd": 5.59,
+          "avg_cmd": 8.18,
+          "avg_ach": 6.38,
+          "max_ach": 6.65,
+          "avg_err": 3.58,
+          "pk_acc": 10.14,
+          "util": 0.78
+        },
+        {
+          "gate": 12,
+          "dur": 3.37,
+          "entry_spd": 6.36,
+          "avg_cmd": 8.99,
+          "avg_ach": 5.23,
+          "max_ach": 6.35,
+          "avg_err": 5.164,
+          "pk_acc": 20.6,
+          "util": 0.582
+        }
+      ]
+    },
+    "params": {
+      "max_speed": 11.0,
+      "cruise_speed": 9.0,
+      "base_blend": 1.8,
+      "threshold": 2.5
+    }
+  },
+  {
+    "profile": "safe",
+    "completed": true,
+    "gates": 12,
+    "total": 12,
+    "time": 37.922,
+    "gate_times": [
+      5.868930101394653,
+      9.2986421585083,
+      11.763976335525513,
+      14.129908323287964,
+      18.414011240005493,
+      22.405348300933838,
+      24.87385606765747,
+      27.338844299316406,
+      29.572654247283936,
+      31.680400133132935,
+      34.265857219696045,
+      37.92169213294983
+    ],
+    "splits": [
+      5.869,
+      3.43,
+      2.465,
+      2.366,
+      4.284,
+      3.991,
+      2.469,
+      2.465,
+      2.234,
+      2.108,
+      2.585,
+      3.656
+    ],
+    "tracking": {
+      "overall": {
+        "avg_err": 3.459,
+        "max_err": 11.958,
+        "avg_cmd": 7.91,
+        "avg_ach": 5.51,
+        "max_ach": 6.8,
+        "pk_acc": 20.19,
+        "util": 0.696
+      },
+      "legs": [
+        {
+          "gate": 1,
+          "dur": 5.869,
+          "entry_spd": 5.97,
+          "avg_cmd": 7.97,
+          "avg_ach": 3.53,
+          "max_ach": 5.98,
+          "avg_err": 4.455,
+          "pk_acc": 6.14,
+          "util": 0.442
+        },
+        {
+          "gate": 2,
+          "dur": 3.43,
+          "entry_spd": 6.48,
+          "avg_cmd": 7.93,
+          "avg_ach": 6.22,
+          "max_ach": 6.53,
+          "avg_err": 2.227,
+          "pk_acc": 9.89,
+          "util": 0.785
+        },
+        {
+          "gate": 3,
+          "dur": 2.465,
+          "entry_spd": 6.48,
+          "avg_cmd": 7.75,
+          "avg_ach": 6.55,
+          "max_ach": 6.8,
+          "avg_err": 2.564,
+          "pk_acc": 10.44,
+          "util": 0.846
+        },
+        {
+          "gate": 4,
+          "dur": 2.366,
+          "entry_spd": 6.11,
+          "avg_cmd": 7.89,
+          "avg_ach": 6.08,
+          "max_ach": 6.5,
+          "avg_err": 5.271,
+          "pk_acc": 17.25,
+          "util": 0.771
+        },
+        {
+          "gate": 5,
+          "dur": 4.284,
+          "entry_spd": 5.77,
+          "avg_cmd": 7.99,
+          "avg_ach": 5.53,
+          "max_ach": 6.11,
+          "avg_err": 3.871,
+          "pk_acc": 12.6,
+          "util": 0.692
+        },
+        {
+          "gate": 6,
+          "dur": 3.991,
+          "entry_spd": 6.56,
+          "avg_cmd": 7.97,
+          "avg_ach": 6.2,
+          "max_ach": 6.55,
+          "avg_err": 2.036,
+          "pk_acc": 4.67,
+          "util": 0.778
+        },
+        {
+          "gate": 7,
+          "dur": 2.469,
+          "entry_spd": 6.54,
+          "avg_cmd": 7.92,
+          "avg_ach": 6.46,
+          "max_ach": 6.59,
+          "avg_err": 2.46,
+          "pk_acc": 8.71,
+          "util": 0.815
+        },
+        {
+          "gate": 8,
+          "dur": 2.465,
+          "entry_spd": 5.69,
+          "avg_cmd": 7.97,
+          "avg_ach": 5.94,
+          "max_ach": 6.54,
+          "avg_err": 4.432,
+          "pk_acc": 10.77,
+          "util": 0.745
+        },
+        {
+          "gate": 9,
+          "dur": 2.234,
+          "entry_spd": 5.74,
+          "avg_cmd": 7.96,
+          "avg_ach": 5.66,
+          "max_ach": 5.79,
+          "avg_err": 3.146,
+          "pk_acc": 8.84,
+          "util": 0.71
+        },
+        {
+          "gate": 10,
+          "dur": 2.108,
+          "entry_spd": 6.02,
+          "avg_cmd": 7.96,
+          "avg_ach": 5.84,
+          "max_ach": 6.0,
+          "avg_err": 2.572,
+          "pk_acc": 5.91,
+          "util": 0.734
+        },
+        {
+          "gate": 11,
+          "dur": 2.585,
+          "entry_spd": 5.21,
+          "avg_cmd": 7.44,
+          "avg_ach": 5.81,
+          "max_ach": 6.03,
+          "avg_err": 3.227,
+          "pk_acc": 8.11,
+          "util": 0.782
+        },
+        {
+          "gate": 12,
+          "dur": 3.656,
+          "entry_spd": 5.8,
+          "avg_cmd": 7.99,
+          "avg_ach": 4.76,
+          "max_ach": 5.8,
+          "avg_err": 4.417,
+          "pk_acc": 20.19,
+          "util": 0.595
+        }
+      ]
+    },
+    "params": {
+      "max_speed": 10.0,
+      "cruise_speed": 8.0,
+      "base_blend": 1.2,
+      "threshold": 2.0
+    }
+  }
+]

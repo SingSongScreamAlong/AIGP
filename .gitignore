@@ -1,0 +1,26 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.bak
+*.bak_*
+*.out
+*.log
+.DS_Store
+probe.out
+gate_ab.out
+
+# Large model weights and datasets (re-generate locally)
+src/vision/gate_yolo/datasets/
+src/vision/gate_yolo/runs/
+src/vision/gate_yolo/models/
+src/vision/gate_yolo/*.pt
+*.pt
+race_replay.mp4
+sample_gate_labeled.jpg
+sample_gate_render.jpg
+gate_frame.png
+
+# Submodules / external sims
+sims/lsy_drone_racing/
+sims/crazyflow/

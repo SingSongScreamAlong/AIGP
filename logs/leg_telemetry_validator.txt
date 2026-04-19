@@ -1,0 +1,105 @@
+harvest_leg_telemetry validator
+wrote: /Users/conradweeden/ai-grand-prix/logs/leg_telemetry.parquet
+rows: 4889
+unique runs: 442
+
+rows by source:
+  overnight_sweep                      rows= 3309  runs= 300
+  ab_9_50_vs_55                        rows=  680  runs=  60
+  rebaseline_prestart                  rows=  649  runs=  60
+  mixed_prestart_validation            rows=  229  runs=  20
+  reliability_v1                       rows=   22  runs=   2
+
+rows by (source, course):
+  ab_9_50_vs_55                       mixed       rows=240
+  ab_9_50_vs_55                       sprint      rows=200
+  ab_9_50_vs_55                       technical   rows=240
+  mixed_prestart_validation           mixed       rows=229
+  overnight_sweep                     mixed       rows=1320
+  overnight_sweep                     sprint      rows=1400
+  overnight_sweep                     technical   rows=589
+  rebaseline_prestart                 mixed       rows=229
+  rebaseline_prestart                 sprint      rows=191
+  rebaseline_prestart                 technical   rows=229
+  reliability_v1                      sprint      rows=10
+  reliability_v1                      technical   rows=12
+
+run_ok x sleep_contaminated:
+  run_ok=False sleep_contaminated=False  runs=17
+  run_ok=False sleep_contaminated=True  runs=2
+  run_ok=True sleep_contaminated=False  runs=419
+  run_ok=True sleep_contaminated=True  runs=4
+
+patch_version distribution (per-run):
+  reliability_v1             runs=302
+  nan                        runs=140
+
+real leg rows: 4884
+
+phase-time null rates (real legs only):
+  phase_time_launch_s       null_rate=0.890
+  phase_time_sustain_s      null_rate=0.015
+  phase_time_turn_s         null_rate=0.017
+
+speed null rates (real legs only):
+  avg_cmd_speed             null_rate=0.000
+  avg_ach_speed             null_rate=0.000
+  max_ach_speed             null_rate=0.000
+  min_ach_speed             null_rate=0.000
+  underdelivery             null_rate=0.000
+  underdelivery_ratio       null_rate=0.000
+
+leg_length, turn_angle_deg summary (real legs):
+  leg_length             n= 4884 min=5.660 p50=17.000 mean=18.345 max=40.000
+  turn_angle_deg         n= 4884 min=0.000 p50=36.900 mean=45.575 max=146.900
+  avg_cmd_speed          n= 4884 min=2.910 p50=10.790 mean=10.452 max=10.980
+  avg_ach_speed          n= 4884 min=0.030 p50=7.780 mean=7.615 max=9.910
+  underdelivery          n= 4884 min=0.930 p50=2.940 mean=2.837 max=10.710
+  underdelivery_ratio    n= 4884 min=0.003 p50=0.726 mean=0.722 max=0.914
+
+3 sample runs (first leg only, for spot-checking):
+  overnight_sweep:108
+    source = overnight_sweep
+    run_idx = 108
+    course = mixed
+    version = V6
+    total_time = 30.356
+    run_ok = True
+    sleep_contaminated = False
+    patch_version = reliability_v1
+    leg_index = 0.0
+    leg_length = 20.0
+    turn_angle_deg = 33.7
+    avg_cmd_speed = 7.66
+    avg_ach_speed = 4.44
+    underdelivery = 3.2199999999999998
+  overnight_sweep:196
+    source = overnight_sweep
+    run_idx = 196
+    course = sprint
+    version = V6
+    total_time = 43.693
+    run_ok = True
+    sleep_contaminated = False
+    patch_version = reliability_v1
+    leg_index = 0.0
+    leg_length = 30.0
+    turn_angle_deg = 36.9
+    avg_cmd_speed = 8.45
+    avg_ach_speed = 5.36
+    underdelivery = 3.089999999999999
+  overnight_sweep:166
+    source = overnight_sweep
+    run_idx = 166
+    course = sprint
+    version = V6
+    total_time = 43.861
+    run_ok = True
+    sleep_contaminated = False
+    patch_version = reliability_v1
+    leg_index = 0.0
+    leg_length = 30.0
+    turn_angle_deg = 36.9
+    avg_cmd_speed = 8.45
+    avg_ach_speed = 5.35
+    underdelivery = 3.0999999999999996

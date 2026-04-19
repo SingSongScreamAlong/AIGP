@@ -1,0 +1,87 @@
+{
+  "trials": [
+    {
+      "completed": true,
+      "time": 27.787,
+      "max_spd": 10.4,
+      "avg_cmd": 10.25,
+      "avg_ach": 7.7,
+      "avg_err": 2.59,
+      "util": 0.75,
+      "splits": [
+        5.755,
+        2.404,
+        2.006,
+        1.788,
+        2.507,
+        2.621,
+        1.84,
+        1.457,
+        1.486,
+        1.464,
+        1.534,
+        2.925
+      ],
+      "gates_passed": 12,
+      "course": "mixed",
+      "trial": 0,
+      "vel_p_acc": 6.0
+    },
+    {
+      "completed": true,
+      "time": 27.846,
+      "max_spd": 10.4,
+      "avg_cmd": 10.28,
+      "avg_ach": 7.71,
+      "avg_err": 2.59,
+      "util": 0.75,
+      "splits": [
+        5.774,
+        2.374,
+        2.006,
+        1.813,
+        2.52,
+        2.623,
+        1.878,
+        1.451,
+        1.46,
+        1.446,
+        1.503,
+        2.999
+      ],
+      "gates_passed": 12,
+      "course": "mixed",
+      "trial": 1,
+      "vel_p_acc": 6.0
+    },
+    {
+      "completed": true,
+      "time": 27.692,
+      "max_spd": 10.37,
+      "avg_cmd": 10.25,
+      "avg_ach": 7.68,
+      "avg_err": 2.6,
+      "util": 0.749,
+      "splits": [
+        5.754,
+        2.399,
+        2.002,
+        1.763,
+        2.536,
+        2.603,
+        1.839,
+        1.42,
+        1.487,
+        1.435,
+        1.522,
+        2.933
+      ],
+      "gates_passed": 12,
+      "course": "mixed",
+      "trial": 2,
+      "vel_p_acc": 6.0
+    }
+  ],
+  "course": "mixed",
+  "vel_p_acc": 6.0
+}

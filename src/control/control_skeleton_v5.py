@@ -1,0 +1,685 @@
+"""
+AI Grand Prix — Control Skeleton
+==================================
+MAVSDK-based autonomy loop. Connects to any MAVLink sim (mock or real).
+Receives telemetry, plans, sends commands.
+
+Usage:
+    # Terminal 1: run the mock sim
+    python3.13 mock_sim.py
+
+    # Terminal 2: run this controller
+    python3.13 control_skeleton.py
+
+Architecture:
+    Telemetry (ODOMETRY, ATTITUDE, IMU) → State → Planner → Commander → MAVLink
+"""
+
+import asyncio
+import time
+import math
+import json
+import os
+from datetime import datetime
+from mavsdk import System
+from mavsdk.offboard import (
+    OffboardError,
+    PositionNedYaw,
+    VelocityNedYaw,
+    Attitude,
+)
+
+
+# ─────────────────────────────────────────────
+# State
+# ─────────────────────────────────────────────
+
+class DroneState:
+    """Current estimated state of the drone."""
+
+    def __init__(self):
+        self.pos = [0.0, 0.0, 0.0]       # NED meters
+        self.vel = [0.0, 0.0, 0.0]       # NED m/s
+        self.att = [0.0, 0.0, 0.0]       # roll, pitch, yaw (rad)
+        self.att_rate = [0.0, 0.0, 0.0]  # rad/s
+        self.timestamp = 0.0
+        self.connected = False
+        self.armed = False
+        self.in_air = False
+
+
+# ─────────────────────────────────────────────
+# Telemetry Logger
+# ─────────────────────────────────────────────
+
+class TelemetryLogger:
+    """Logs all state + commands for replay analysis."""
+
+    def __init__(self, log_dir="logs"):
+        os.makedirs(log_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_path = os.path.join(log_dir, f"flight_{timestamp}.jsonl")
+        self.file = open(self.log_path, 'w')
+        self.count = 0
+        print(f"  [LOG] Logging to {self.log_path}")
+
+    def log(self, event_type, data):
+        """Write a log entry."""
+        entry = {
+            "t": time.time(),
+            "type": event_type,
+            **data
+        }
+        self.file.write(json.dumps(entry) + '\n')
+        self.count += 1
+        if self.count % 500 == 0:
+            self.file.flush()
+
+    def close(self):
+        self.file.flush()
+        self.file.close()
+        print(f"  [LOG] Wrote {self.count} entries to {self.log_path}")
+
+
+# ─────────────────────────────────────────────
+# Gate Sequencer (stub)
+# ─────────────────────────────────────────────
+
+class GateSequencer:
+    """Tracks gate order and current target.
+    For now: hard-coded waypoint list as gate proxies.
+    """
+
+    def __init__(self, gates=None):
+        # Default: a square pattern at 2m altitude (NED: z=-2)
+        if gates is None:
+            gates = [
+                (5.0, 0.0, -2.0),    # gate 1: 5m forward
+                (5.0, 5.0, -2.0),    # gate 2: right turn
+                (0.0, 5.0, -2.0),    # gate 3: back
+                (0.0, 0.0, -2.0),    # gate 4: home
+            ]
+        self.gates = gates
+        self.current_idx = 0
+        self.completed = False
+
+    @property
+    def current_gate(self):
+        if self.current_idx < len(self.gates):
+            return self.gates[self.current_idx]
+        return None
+
+    @property
+    def gate_count(self):
+        return len(self.gates)
+
+    def check_gate_pass(self, pos, threshold=2.5):
+        """Check if we've passed through the current gate."""
+        gate = self.current_gate
+        if gate is None:
+            return False
+
+        dx = pos[0] - gate[0]
+        dy = pos[1] - gate[1]
+        dz = pos[2] - gate[2]
+        dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+
+        if dist < threshold:
+            self.current_idx += 1
+            if self.current_idx >= len(self.gates):
+                self.completed = True
+            return True
+        return False
+
+    def next_gate_after(self):
+        """Peek at the gate after the current one (for look-ahead)."""
+        idx = self.current_idx + 1
+        if idx < len(self.gates):
+            return self.gates[idx]
+        return None
+
+
+# ─────────────────────────────────────────────
+# Planner
+# ─────────────────────────────────────────────
+
+class Planner:
+    """V5: Phase-aware PX4 planner.
+    
+    Each leg is decomposed into phases:
+      LAUNCH  - from hover/slow, quadratic ramp (first leg only)
+      BUILD   - accelerating toward cruise
+      SUSTAIN - at or near cruise speed
+      PRE_TURN - decelerating into upcoming turn
+      TURN    - in blend zone, direction change
+      EXIT    - accelerating out of turn toward next gate
+    
+    Key changes from V4:
+    - Sub-leg phase detection drives speed targets
+    - Turn-entry decel based on achieved speed + turn angle + remaining distance
+    - Short-leg suppression: legs < 10m skip cruise entirely
+    - Dedicated first-leg launch profile
+    - PX4 decel model: observed ~4 m/s^2 effective deceleration
+    """
+    
+    def __init__(self, max_speed=11.0, cruise_speed=9.0, base_blend=1.5):
+        self.max_speed = max_speed
+        self.cruise_speed = cruise_speed
+        self.base_blend = base_blend
+        self.blend_radius = base_blend
+        self.mode = "velocity"
+        
+        # PX4 response model (from V4, refined)
+        self.px4_max_accel = 6.0
+        self.px4_max_decel = 4.0       # observed decel capability
+        self.px4_speed_ceiling = 8.5   # slightly raised after V4 showed 8.89 achievable
+        self.px4_util_straight = 0.78  # tuned up from 0.75 based on V4 sprint data
+        self.px4_util_turn = 0.55
+        self.px4_hover_ramp_time = 2.5 # tightened from 3.0 - V4 data shows faster ramp is OK
+        
+        # State tracking
+        self.last_cmd_speed = 0.0
+        self.mission_start_time = None
+        self.gates_passed = 0
+        self.is_first_leg = True
+        self.prev_gate_speed = 0.0     # speed when we passed the last gate
+    
+    def _phase_detect(self, dist_xy, current_speed, turn_angle, dynamic_blend, segment_length):
+        """Detect which phase of the current leg we are in."""
+        # Distance thresholds
+        turn_decel_dist = self._decel_distance(current_speed, turn_angle)
+        blend_entry = dynamic_blend * 1.0
+        
+        if self.is_first_leg and self.mission_start_time is not None:
+            elapsed = time.time() - self.mission_start_time
+            if elapsed < self.px4_hover_ramp_time:
+                return 'LAUNCH'
+        
+        if dist_xy <= blend_entry:
+            return 'TURN'
+        
+        if dist_xy <= turn_decel_dist and turn_angle > 0.3:
+            return 'PRE_TURN'
+        
+        # Short leg suppression: if total segment < 10m, skip BUILD/SUSTAIN
+        if segment_length < 10.0:
+            return 'SHORT'
+        
+        if current_speed < self.cruise_speed * 0.7:
+            return 'BUILD'
+        
+        return 'SUSTAIN'
+    
+    def _decel_distance(self, current_speed, turn_angle):
+        """How far before the gate should we start decelerating?
+        Based on: current speed, turn severity, PX4 decel capability."""
+        if turn_angle < 0.2:
+            return 0.0  # gentle turn, no pre-decel needed
+        
+        # Target speed at turn entry
+        turn_speed = self._turn_entry_speed(turn_angle)
+        speed_drop = max(0, current_speed - turn_speed)
+        
+        if speed_drop <= 0:
+            return 0.0
+        
+        # d = v*t - 0.5*a*t^2 where t = speed_drop / decel
+        t_decel = speed_drop / self.px4_max_decel
+        dist = current_speed * t_decel - 0.5 * self.px4_max_decel * t_decel * t_decel
+        
+        # Add safety margin (PX4 decel is approximate)
+        return max(dist * 1.3, self.base_blend * 1.5)
+    
+    def _turn_entry_speed(self, turn_angle):
+        """What speed should we be at when entering the blend zone?"""
+        # Sharper turns need lower entry speed
+        cos_factor = math.cos(turn_angle / 2.0)
+        base = self.cruise_speed * (0.35 + 0.65 * cos_factor)
+        return min(base, self.px4_speed_ceiling)
+    
+    def _px4_command(self, desired_achieved, turn_severity):
+        """Invert PX4 utilization to get commanded speed for desired achieved."""
+        tr = turn_severity / math.pi
+        util = self.px4_util_straight * (1 - tr) + self.px4_util_turn * tr
+        commanded = desired_achieved / max(util, 0.3)
+        return min(commanded, self.max_speed)
+    
+    def _smooth_speed(self, target_speed, phase, dt=0.02):
+        """Phase-aware speed smoothing."""
+        if phase == 'LAUNCH':
+            max_rate = 4.0   # gentle ramp from hover
+        elif phase == 'BUILD':
+            max_rate = 10.0  # aggressive accel
+        elif phase == 'PRE_TURN':
+            max_rate = 12.0  # allow fast decel commands
+        elif phase == 'TURN':
+            max_rate = 6.0   # smooth through turn
+        else:
+            max_rate = 8.0   # default
+        
+        max_delta = max_rate * dt
+        
+        if target_speed > self.last_cmd_speed:
+            smoothed = min(target_speed, self.last_cmd_speed + max_delta)
+        else:
+            # Decel gets 1.5x rate allowance
+            smoothed = max(target_speed, self.last_cmd_speed - max_delta * 1.5)
+        
+        self.last_cmd_speed = smoothed
+        return smoothed
+    
+    def plan_velocity(self, state, target_gate, next_gate=None):
+        """V5 phase-aware velocity planning."""
+        if target_gate is None:
+            return VelocityNedYaw(0, 0, 0, 0)
+        
+        if self.mission_start_time is None:
+            self.mission_start_time = time.time()
+        
+        tx, ty, tz = target_gate
+        dx = tx - state.pos[0]
+        dy = ty - state.pos[1]
+        dz = tz - state.pos[2]
+        dist_xy = math.sqrt(dx*dx + dy*dy)
+        dist_3d = math.sqrt(dx*dx + dy*dy + dz*dz)
+        yaw_deg = math.degrees(math.atan2(dy, dx))
+        
+        if dist_3d < 0.1:
+            return VelocityNedYaw(0, 0, 0, yaw_deg)
+        
+        ux, uy, uz = dx/dist_3d, dy/dist_3d, dz/dist_3d
+        current_speed = math.sqrt(state.vel[0]**2 + state.vel[1]**2)
+        
+        # ── Turn angle ──
+        turn_angle = 0.0
+        next_segment_length = 0.0
+        if next_gate is not None:
+            nx, ny, nz = next_gate
+            ndx, ndy = nx - tx, ny - ty
+            ndist = math.sqrt(ndx*ndx + ndy*ndy)
+            next_segment_length = ndist
+            if ndist > 0.1 and dist_xy > 0.1:
+                ax, ay = dx / dist_xy, dy / dist_xy
+                bx, by = ndx / ndist, ndy / ndist
+                dot = max(-1.0, min(1.0, ax * bx + ay * by))
+                turn_angle = math.acos(dot)
+        
+        # ── Dynamic blend radius ──
+        dynamic_blend = self.base_blend + 0.25 * current_speed + (turn_angle / math.pi) * 2.0
+        self.blend_radius = dynamic_blend
+        
+        # ── Segment length (approximate remaining) ──
+        segment_length = dist_xy  # distance remaining to gate
+        
+        # ── Phase detection ──
+        phase = self._phase_detect(dist_xy, current_speed, turn_angle, dynamic_blend, segment_length)
+        
+        # ── Phase-specific speed target (desired achieved speed) ──
+        if phase == 'LAUNCH':
+            elapsed = time.time() - self.mission_start_time
+            ramp = (elapsed / self.px4_hover_ramp_time) ** 2
+            desired = max(self.cruise_speed * ramp, 2.0)
+        
+        elif phase == 'SHORT':
+            # Short leg: don't try to cruise. Just get there and turn.
+            # Target a modest speed that allows turning at the gate
+            if turn_angle > 1.0:  # > 57 degrees
+                desired = min(current_speed, self.cruise_speed * 0.5)
+            else:
+                desired = min(current_speed + 1.0, self.cruise_speed * 0.7)
+        
+        elif phase == 'BUILD':
+            # Accelerating toward cruise - command aggressively
+            desired = self.cruise_speed
+        
+        elif phase == 'SUSTAIN':
+            # At cruise - maintain
+            desired = self.cruise_speed
+        
+        elif phase == 'PRE_TURN':
+            # Decelerating toward turn entry speed
+            target_entry = self._turn_entry_speed(turn_angle)
+            # Linear ramp from current toward target over remaining distance
+            decel_dist = self._decel_distance(current_speed, turn_angle)
+            if decel_dist > 0.1:
+                progress = 1.0 - (dist_xy - dynamic_blend) / max(decel_dist - dynamic_blend, 0.1)
+                progress = max(0.0, min(1.0, progress))
+                desired = current_speed + (target_entry - current_speed) * progress
+            else:
+                desired = target_entry
+        
+        elif phase == 'TURN':
+            # In blend zone
+            target_entry = self._turn_entry_speed(turn_angle)
+            blend = 1.0 - (dist_xy / dynamic_blend)
+            blend = max(0.0, min(1.0, blend))
+            apex_depth = 0.2 + 0.25 * (turn_angle / math.pi)
+            apex_factor = 1.0 - apex_depth * math.sin(blend * math.pi)
+            desired = target_entry * apex_factor
+        
+        else:
+            desired = self.cruise_speed
+        
+        # Cap at PX4 ceiling
+        desired = min(desired, self.px4_speed_ceiling)
+        
+        # ── Convert to PX4 command via utilization inversion ──
+        commanded_speed = self._px4_command(desired, turn_angle if phase in ('PRE_TURN', 'TURN', 'SHORT') else 0.0)
+        
+        # ── Direction computation ──
+        if phase == 'TURN' and next_gate is not None and dist_xy < dynamic_blend:
+            blend = 1.0 - (dist_xy / dynamic_blend)
+            blend = max(0.0, min(1.0, blend))
+            
+            nx, ny, nz = next_gate
+            ndx, ndy, ndz = nx - tx, ny - ty, nz - tz
+            ndist = math.sqrt(ndx*ndx + ndy*ndy + ndz*ndz)
+            if ndist > 0.1:
+                nux, nuy, nuz = ndx/ndist, ndy/ndist, ndz/ndist
+            else:
+                nux, nuy, nuz = ux, uy, uz
+            
+            bx = ux * (1 - blend) + nux * blend
+            by = uy * (1 - blend) + nuy * blend
+            bz = uz * (1 - blend) + nuz * blend
+            bmag = math.sqrt(bx*bx + by*by + bz*bz)
+            if bmag > 0.01:
+                bx, by, bz = bx/bmag, by/bmag, bz/bmag
+            
+            speed = self._smooth_speed(commanded_speed, phase)
+            vx, vy, vz = bx * speed, by * speed, bz * speed
+            yaw_deg = math.degrees(math.atan2(by, bx))
+        else:
+            speed = self._smooth_speed(commanded_speed, phase)
+            vx, vy, vz = ux * speed, uy * speed, uz * speed
+        
+        # ── Altitude correction ──
+        alt_err = tz - state.pos[2]
+        vz = alt_err * 3.0
+        
+        # ── Final speed cap ──
+        speed_total = math.sqrt(vx*vx + vy*vy + vz*vz)
+        if speed_total > self.max_speed:
+            scale = self.max_speed / speed_total
+            vx *= scale
+            vy *= scale
+            vz *= scale
+        
+        return VelocityNedYaw(vx, vy, vz, yaw_deg)
+    
+    def on_gate_passed(self, speed):
+        """Called when a gate is passed. Updates state for next leg."""
+        self.gates_passed += 1
+        self.is_first_leg = False
+        self.prev_gate_speed = speed
+    
+    def plan_position(self, state, target_gate, next_gate=None):
+        """Position-mode planning - safe/precise. Unchanged."""
+        if target_gate is None:
+            return PositionNedYaw(state.pos[0], state.pos[1], state.pos[2], 0.0)
+        tx, ty, tz = target_gate
+        dx = tx - state.pos[0]
+        dy = ty - state.pos[1]
+        yaw_deg = math.degrees(math.atan2(dy, dx))
+        if next_gate is not None:
+            nx, ny, nz = next_gate
+            tx += (nx - tx) * 0.3
+            ty += (ny - ty) * 0.3
+        else:
+            dist = math.sqrt(dx*dx + dy*dy)
+            if dist > 0.1:
+                tx += (dx / dist) * 0.5
+                ty += (dy / dist) * 0.5
+        return PositionNedYaw(tx, ty, tz, yaw_deg)
+    
+    def plan(self, state, target_gate, next_gate=None):
+        """Main entry - dispatches to velocity or position mode."""
+        if self.mode == "velocity":
+            return self.plan_velocity(state, target_gate, next_gate)
+        else:
+            return self.plan_position(state, target_gate, next_gate)
+
+# ─────────────────────────────────────────────
+# Main Controller
+# ─────────────────────────────────────────────
+
+class Controller:
+    """Main autonomy loop."""
+
+    def __init__(self, connection_string="udpin://0.0.0.0:14540"):
+        self.conn_str = connection_string
+        self.drone = System()
+        self.state = DroneState()
+        self.logger = TelemetryLogger()
+        self.sequencer = GateSequencer()
+        self.planner = Planner(max_speed=12.0, cruise_speed=10.0, base_blend=2.5)
+        self.command_hz = 50
+        self.start_time = None
+
+    async def connect(self):
+        """Connect to the MAVLink sim."""
+        print(f"[CTRL] Connecting to {self.conn_str}...")
+        await self.drone.connect(system_address=self.conn_str)
+
+        print("[CTRL] Waiting for connection...")
+        async for state in self.drone.core.connection_state():
+            if state.is_connected:
+                print("[CTRL] Connected!")
+                self.state.connected = True
+                break
+
+    async def start_telemetry(self):
+        """Subscribe to telemetry streams."""
+
+        # Position (from ODOMETRY)
+        async def position_loop():
+            async for pos in self.drone.telemetry.position_velocity_ned():
+                self.state.pos = [
+                    pos.position.north_m,
+                    pos.position.east_m,
+                    pos.position.down_m
+                ]
+                self.state.vel = [
+                    pos.velocity.north_m_s,
+                    pos.velocity.east_m_s,
+                    pos.velocity.down_m_s
+                ]
+                self.state.timestamp = time.time()
+                self.logger.log("state", {
+                    "pos": self.state.pos,
+                    "vel": self.state.vel,
+                    "att": self.state.att,
+                })
+
+        # Attitude
+        async def attitude_loop():
+            async for att in self.drone.telemetry.attitude_euler():
+                self.state.att = [
+                    math.radians(att.roll_deg),
+                    math.radians(att.pitch_deg),
+                    math.radians(att.yaw_deg)
+                ]
+
+        # Flight mode / armed status
+        async def status_loop():
+            async for armed in self.drone.telemetry.armed():
+                self.state.armed = armed
+
+        asyncio.ensure_future(position_loop())
+        asyncio.ensure_future(attitude_loop())
+        asyncio.ensure_future(status_loop())
+        print("[CTRL] Telemetry streams active")
+
+    async def arm_and_takeoff(self, altitude=2.0):
+        """Arm the drone and take off to given altitude (meters)."""
+        print(f"[CTRL] Arming...")
+        await self.drone.action.arm()
+
+        print(f"[CTRL] Taking off to {altitude}m...")
+        try:
+            await self.drone.action.set_takeoff_altitude(altitude)
+        except Exception as e:
+            print(f"[CTRL] set_takeoff_altitude skipped ({e})")
+        await self.drone.action.takeoff()
+
+        # Wait to reach altitude
+        await asyncio.sleep(3)
+        print(f"[CTRL] Airborne at ~{altitude}m")
+        self.state.in_air = True
+
+    async def start_offboard(self):
+        """Switch to offboard mode for direct position/attitude control."""
+        print(f"[CTRL] Starting offboard mode ({self.planner.mode})...")
+
+        # Must send a setpoint before starting offboard
+        if self.planner.mode == "velocity":
+            await self.drone.offboard.set_velocity_ned(VelocityNedYaw(0, 0, 0, 0))
+        else:
+            initial = PositionNedYaw(
+                self.state.pos[0],
+                self.state.pos[1],
+                self.state.pos[2],
+                0.0
+            )
+            await self.drone.offboard.set_position_ned(initial)
+
+        try:
+            await self.drone.offboard.start()
+            print("[CTRL] Offboard mode active")
+        except OffboardError as e:
+            print(f"[CTRL] Offboard start failed: {e}")
+            raise
+
+    async def run_mission(self):
+        """Main control loop — fly through all gates."""
+        self.start_time = time.time()
+        print(f"\n[CTRL] === MISSION START ===")
+        print(f"[CTRL] Mode: {self.planner.mode} | Speed: {self.planner.cruise_speed} m/s")
+        print(f"[CTRL] Gates: {self.sequencer.gate_count}")
+        print(f"[CTRL] Command rate: {self.command_hz} Hz")
+        print()
+
+        dt = 1.0 / self.command_hz
+        loop_count = 0
+
+        while not self.sequencer.completed:
+            loop_start = time.time()
+
+            # Check for gate pass
+            if self.sequencer.check_gate_pass(self.state.pos, threshold=2.5):
+                gate_num = self.sequencer.current_idx  # already advanced
+                elapsed = time.time() - self.start_time
+                print(f"  [GATE] Passed gate {gate_num}/{self.sequencer.gate_count} "
+                      f"at t={elapsed:.1f}s")
+                self.logger.log("gate_pass", {
+                    "gate": gate_num,
+                    "elapsed": elapsed,
+                    "pos": self.state.pos
+                })
+                # Notify planner of gate pass for phase tracking
+                gate_speed = math.sqrt(sum(v**2 for v in self.state.vel[:2]))
+                self.planner.on_gate_passed(gate_speed)
+
+            # Plan next target
+            target = self.planner.plan(
+                self.state,
+                self.sequencer.current_gate,
+                self.sequencer.next_gate_after()
+            )
+
+            # Send command — velocity or position based on planner mode
+            if isinstance(target, VelocityNedYaw):
+                await self.drone.offboard.set_velocity_ned(target)
+                self.logger.log("cmd", {
+                    "mode": "velocity",
+                    "vn": target.north_m_s,
+                    "ve": target.east_m_s,
+                    "vd": target.down_m_s,
+                    "yaw": target.yaw_deg,
+                    "gate_idx": self.sequencer.current_idx,
+                })
+            else:
+                await self.drone.offboard.set_position_ned(target)
+                self.logger.log("cmd", {
+                    "mode": "position",
+                    "target_n": target.north_m,
+                    "target_e": target.east_m,
+                    "target_d": target.down_m,
+                    "target_yaw": target.yaw_deg,
+                    "gate_idx": self.sequencer.current_idx,
+                })
+
+            # Status print every second
+            loop_count += 1
+            if loop_count % self.command_hz == 0:
+                gate = self.sequencer.current_gate
+                if gate:
+                    dx = gate[0] - self.state.pos[0]
+                    dy = gate[1] - self.state.pos[1]
+                    dz = gate[2] - self.state.pos[2]
+                    dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+                    speed = math.sqrt(sum(v**2 for v in self.state.vel))
+                    print(f"  pos=({self.state.pos[0]:5.1f}, {self.state.pos[1]:5.1f}, {self.state.pos[2]:5.1f}) "
+                          f"→ gate {self.sequencer.current_idx + 1} "
+                          f"dist={dist:.1f}m speed={speed:.1f}m/s")
+
+            # Maintain loop rate
+            elapsed = time.time() - loop_start
+            sleep_time = dt - elapsed
+            if sleep_time > 0:
+                await asyncio.sleep(sleep_time)
+
+        # Mission complete
+        total_time = time.time() - self.start_time
+        print(f"\n[CTRL] === MISSION COMPLETE ===")
+        print(f"[CTRL] All {self.sequencer.gate_count} gates passed!")
+        print(f"[CTRL] Total time: {total_time:.2f}s")
+
+        self.logger.log("mission_complete", {
+            "total_time": total_time,
+            "gates": self.sequencer.gate_count,
+        })
+
+    async def land(self):
+        """Land the drone."""
+        print("[CTRL] Landing...")
+        await self.drone.action.land()
+        await asyncio.sleep(3)
+        print("[CTRL] Landed")
+
+    async def run(self):
+        """Full flight sequence."""
+        try:
+            await self.connect()
+            await self.start_telemetry()
+            await asyncio.sleep(1)  # let telemetry settle
+
+            await self.arm_and_takeoff(altitude=2.0)
+            await self.start_offboard()
+            await self.run_mission()
+            await self.land()
+
+        except Exception as e:
+            print(f"[CTRL] ERROR: {e}")
+            raise
+        finally:
+            self.logger.close()
+
+
+# ─────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────
+
+async def main():
+    print("=" * 60)
+    print("  AI Grand Prix — Control Skeleton")
+    print("  V5: Phase-Aware PX4 Planner")
+    print("=" * 60)
+    print()
+
+    controller = Controller(connection_string="udpin://0.0.0.0:14540")
+    await controller.run()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
