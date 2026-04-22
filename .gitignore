@@ -24,3 +24,6 @@ gate_frame.png
 # Submodules / external sims
 sims/lsy_drone_racing/
 sims/crazyflow/
+
+# day1_dcl.sh forensic logs — regenerated per run
+dcl_day1_logs/

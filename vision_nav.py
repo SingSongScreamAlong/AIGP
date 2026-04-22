@@ -50,6 +50,26 @@ NOISE_PROFILES = {
         'min_detect_range': 1.0,
         'bearing_bias_deg': 1.5,     # systematic bias
     },
+    # S19w — pessimistic "brutal" profile added to push past the
+    # clean/mild/harsh envelope in soak. The triad clean→harsh
+    # bottomed out with 100% completion; brutal is the tightening
+    # screw: double bearing_sigma, double the miss rate, tighter FOV,
+    # shorter detect range, larger systematic bearing bias. Used by
+    # `soak.py` to find where V5.1+BeliefNav starts losing races and
+    # where ESKF-fusion becomes necessary for the sensor budget we
+    # actually expect on hardware (Neros 12MP with partial-obscuration
+    # events). Not recommended for run_race.py production flights;
+    # expect completion rates < 100% even on small courses.
+    'brutal': {
+        'bearing_sigma_deg': 10.0,
+        'range_sigma_frac': 0.30,
+        'miss_prob': 0.35,
+        'fov_h_deg': 60.0,
+        'fov_v_deg': 45.0,
+        'max_detect_range': 15.0,
+        'min_detect_range': 1.2,
+        'bearing_bias_deg': 3.0,
+    },
 }
 
 
@@ -92,10 +112,20 @@ class VirtualCamera:
 
     GATE_PHYSICAL_SIZE = 2.0  # meters, approximate gate opening diameter
 
-    def __init__(self, gates: list, noise_profile: str = 'clean'):
+    def __init__(self, gates: list, noise_profile: str = 'clean', seed: int = 42):
+        """
+        Args:
+            seed: RNG seed for noise + miss_prob sampling. Hardcoded to 42
+                for over a year prior to S19w — soak variance came from
+                wall-clock-paced PX4 SITL jitter, which masked a latent
+                sensitivity to noise-sample trajectories. Modern sandbox
+                soak (`soak.py`) varies this across trials to surface
+                detector-driven failure modes that the single-seed bench
+                missed.
+        """
         self.gates = gates  # [(N, E, D), ...] — sim ground truth, not exposed to nav
         self.np = NOISE_PROFILES[noise_profile]
-        self.rng = random.Random(42)
+        self.rng = random.Random(int(seed))
 
     def observe(self, pos: list, vel: list, yaw_deg: float) -> List[GateDetection]:
         """Produce camera observations for all gates.

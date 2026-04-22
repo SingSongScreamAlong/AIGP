@@ -94,8 +94,17 @@ class GateBelief:
     def propagate(self, vel, yaw_rad, dt):
         """Propagate belief forward when no detection.
 
-        Uses drone velocity to update the body-frame bearing/range estimate.
-        The gate is stationary in world frame; the drone moves.
+        Uses drone velocity AND yaw change to update the body-frame
+        bearing/range estimate. The gate is stationary in world frame;
+        the drone moves AND rotates.
+
+        The belief (bearing_h/v, range) is expressed in the body frame
+        AS OF THE LAST TICK. To account for yaw rotation between ticks,
+        convert body→NED using the PREVIOUS yaw, then NED→body using the
+        CURRENT yaw. Using the same yaw for both conversions (the prior
+        bug) silently cancels the rotation and causes belief drift when
+        the drone yaws — exactly the case where the belief is supposed
+        to help.
 
         Args:
             vel: [vN, vE, vD] drone velocity in NED
@@ -105,32 +114,36 @@ class GateBelief:
         if self.confidence < self.MIN_CONFIDENCE:
             return  # belief is dead, nothing to propagate
 
-        # 1. Convert belief from body frame to world-relative offset
-        #    body_x = forward, body_y = right
-        cos_y = math.cos(yaw_rad)
-        sin_y = math.sin(yaw_rad)
+        # Use previous yaw for body→NED; if unseeded (first propagate
+        # before any detection has anchored the frame), fall back to
+        # the current yaw so the first tick is a no-op in rotation terms.
+        prev_yaw = self._prev_yaw_rad if self._prev_yaw_rad is not None else yaw_rad
+        cos_py = math.cos(prev_yaw)
+        sin_py = math.sin(prev_yaw)
+        cos_cy = math.cos(yaw_rad)
+        sin_cy = math.sin(yaw_rad)
 
-        # Gate offset in body frame
+        # Gate offset in the PREVIOUS body frame (body_x forward, body_y right)
         body_x = self.range_est * math.cos(self.bearing_h) * math.cos(self.bearing_v)
         body_y = self.range_est * math.sin(self.bearing_h) * math.cos(self.bearing_v)
         body_z = self.range_est * math.sin(self.bearing_v)
 
-        # Convert to NED offset
-        dn = body_x * cos_y - body_y * sin_y
-        de = body_x * sin_y + body_y * cos_y
+        # Previous body → NED using PREVIOUS yaw
+        dn = body_x * cos_py - body_y * sin_py
+        de = body_x * sin_py + body_y * cos_py
         dd = body_z
 
-        # 2. Subtract drone motion (gate is stationary, drone moved)
+        # Subtract drone motion in NED (gate is stationary, drone moved)
         dn -= vel[0] * dt
         de -= vel[1] * dt
         dd -= vel[2] * dt
 
-        # 3. Convert back to body frame (using CURRENT yaw, which may have changed)
-        new_body_x = dn * cos_y + de * sin_y
-        new_body_y = -dn * sin_y + de * cos_y
+        # NED → CURRENT body frame using CURRENT yaw
+        new_body_x = dn * cos_cy + de * sin_cy
+        new_body_y = -dn * sin_cy + de * cos_cy
         new_body_z = dd
 
-        # 4. Extract new bearing and range
+        # Extract new bearing and range in current body frame
         new_range = math.sqrt(new_body_x**2 + new_body_y**2 + new_body_z**2)
         if new_range > 0.1:
             self.bearing_h = math.atan2(new_body_y, new_body_x)
@@ -138,7 +151,7 @@ class GateBelief:
             self.bearing_v = math.atan2(new_body_z, horiz_dist) if horiz_dist > 0.1 else 0.0
             self.range_est = new_range
 
-        # 5. Decay confidence
+        # Decay confidence and advance the reference frame
         self.confidence *= self.CONFIDENCE_DECAY
         self.ticks_since_detection += 1
         self._prev_yaw_rad = yaw_rad
@@ -214,12 +227,47 @@ class BeliefNav:
         self.belief = GateBelief()
         self.current_gate = 0
 
+        # S19o gate-aware fallback: when the navigator knows where the
+        # next target gate is in NED, it can turn toward it directly
+        # instead of blind coast/search. Critical for the post-pass
+        # out-of-FOV window: the just-passed gate is still in FOV and
+        # picker-fallback used to steer us back into it; with gates_ned
+        # set, `_plan_toward_known_target` points us at the new target
+        # from the moment target_idx advances. None → legacy coast/search.
+        self.gates_ned = None
+
+        # S19p pose-trust gate: the gate-aware fallback steers on the
+        # navigator's pose estimate. When that pose comes from an ESKF
+        # that's rejecting most vision fixes (self-destructive chi-
+        # squared loop under harsh noise), navigating on it actively
+        # drives the drone off-course. Callers (RaceLoop) flip this to
+        # False when `PoseFusion.recent_reject_rate()` exceeds a
+        # threshold; the navigator then falls through to belief-coast/
+        # search, which degrade gracefully instead of committing to a
+        # wrong world-frame target.
+        self.pose_trusted = True
+
     def on_gate_passed(self):
         """Called when tracker detects gate passage."""
         self.belief.reset()
         self.current_gate += 1
         self.search_yaw_direction = 1.0
         self.search_phase_ticks = 0
+
+    def set_gates_ned(self, gates_ned):
+        """Enable gate-aware fallback navigation.
+
+        ``gates_ned`` is a list of (N, E, D) tuples. When set, the
+        navigator falls back to flying directly toward
+        ``gates_ned[target_idx]`` when there's no detection for the
+        current target, instead of coasting on a stale belief or
+        searching blindly. Pass ``None`` to revert to belief-only
+        coast/search.
+
+        Caller controls the lifecycle: typically wired once at
+        construction by the loop that owns the gate list.
+        """
+        self.gates_ned = gates_ned
 
     def _speed_for_range(self, range_est, confidence=1.0):
         """Speed based on range, scaled by confidence."""
@@ -285,6 +333,27 @@ class BeliefNav:
         # ── No detection: propagate belief ──
         self.belief.propagate(vel, yaw_rad, dt)
 
+        # Gate-aware fallback (S19o): when we know where the target gate
+        # is in NED and the navigator has a trusted pose estimate, fly
+        # directly toward the world-frame target rather than coast on a
+        # belief that just got reset (post-pass) or search blindly. This
+        # closes the post-pass out-of-FOV gap — belief confidence is 0.0
+        # in the ticks right after `on_gate_passed()` fires, so the
+        # belief-coast branch has nothing to say about the new target.
+        # Knowing the world-frame gate lets us turn toward it immediately.
+        #
+        # Falls back to belief-coast/search when: gates_ned is unset,
+        # target_idx is out of range, OR `pose_trusted` is False (S19p
+        # — protects against navigating on a diverging ESKF pose).
+        if (
+            self.pose_trusted
+            and self.gates_ned is not None
+            and 0 <= tracker_state.target_idx < len(self.gates_ned)
+        ):
+            return self._plan_toward_known_target(
+                tracker_state.target_idx, pos, yaw_rad, dt
+            )
+
         if self.belief.is_alive:
             # Coast toward belief
             return self._plan_coast(vel, yaw_rad, dt)
@@ -327,6 +396,58 @@ class BeliefNav:
         vd = sp * math.sin(b_v) * 1.5  # slightly less aggressive vertical
 
         return VelocityNedYaw(vn, ve, vd, math.degrees(target_yaw_rad))
+
+    def _plan_toward_known_target(self, target_idx, pos, yaw_rad, dt):
+        """Fly toward ``gates_ned[target_idx]`` using world-frame geometry.
+
+        Used when no detection is available but the navigator knows the
+        target gate's NED position. Computes bearing from the supplied
+        pose (truth when fusion is off, fused when on), picks a cruise
+        speed, and emits a NED velocity command plus a yaw command that
+        points forward-along-approach.
+
+        Noisy pose is self-correcting here: once the drone gets close
+        enough for the gate to come into FOV, `_plan_tracking` takes
+        over on the next detection and the detection-bearing overrides
+        this world-frame bearing. So even if `pos` is drifted by 5 m,
+        this path is a reasonable heading guess that gets the drone
+        close enough to re-acquire.
+        """
+        gate = self.gates_ned[target_idx]
+        dn = gate[0] - pos[0]
+        de = gate[1] - pos[1]
+        dd = gate[2] - pos[2]
+        horiz = math.sqrt(dn * dn + de * de)
+        r = math.sqrt(horiz * horiz + dd * dd)
+        if r < 1e-3:
+            # On top of the gate — let the pass detector handle it;
+            # emit a small forward drift rather than divide-by-zero.
+            return VelocityNedYaw(0.0, 0.0, 0.0, math.degrees(yaw_rad))
+
+        # World-frame heading to gate.
+        yaw_to_gate = math.atan2(de, dn)
+
+        # Horizontal bearing relative to current yaw for px4_cmd speed
+        # shaping (big turns ⇒ lower speed via px4_util_turn).
+        bearing_h = (yaw_to_gate - yaw_rad + math.pi) % (2 * math.pi) - math.pi
+
+        # Conservative speed — we're flying on pose, not detection. The
+        # coast_speed_frac+conf_scale path gives a solid middle ground;
+        # reuse that shape so speeds stay consistent with belief-coast
+        # when the drone has been flying through the same target.
+        base = self._speed_for_range(r) * self.coast_speed_frac
+        base = max(base, self.coast_min_speed)
+        cmd_speed = self._px4_cmd(base, abs(bearing_h))
+        sp = self._smooth(cmd_speed, dt)
+
+        # NED-frame velocity along the gate direction.
+        vn = sp * (dn / r) if horiz > 1e-3 else 0.0
+        ve = sp * (de / r) if horiz > 1e-3 else 0.0
+        # Vertical: point toward gate D but throttle to avoid hard
+        # climb/dive commands when the drone is already near altitude.
+        vd = sp * (dd / r)
+
+        return VelocityNedYaw(vn, ve, vd, math.degrees(yaw_to_gate))
 
     def _plan_search(self, yaw_deg, yaw_rad, dt):
         """Structured search: alternating yaw sweeps.

@@ -55,9 +55,9 @@ class GatePoseEstimator:
         cv2.arrowedLine(ann,o,tuple(p[2]),(0,255,0),2)
         cv2.arrowedLine(ann,o,tuple(p[3]),(255,0,0),2)
         cp2,_=cv2.projectPoints(self.object_points,rvec,tvec,self.camera_matrix,self.dist_coeffs)
-        c=cp2.reshape(-,2).astype(int)
+        c=cp2.reshape(-1,2).astype(int)
         for i in range(4): cv2.line(ann,tuple(c[i]),tuple(c[(i+1)%4]),(0,255,255),2)
-        if label is None: label=f'd={pose[distance]:.2f}m'
+        if label is None: label=f'd={pose["distance"]:.2f}m'
         cv2.putText(ann,label,(o[0]-40,o[1]-15),cv2.FONT_HERSHEY_SIMPLEX,0.5,(255,255,255),2)
         return ann
     def update_intrinsics(self,camera_matrix=None,dist_coeffs=None,fov_deg=None):
