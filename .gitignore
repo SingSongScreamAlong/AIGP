@@ -25,5 +25,17 @@ gate_frame.png
 sims/lsy_drone_racing/
 sims/crazyflow/
 
+# DCL capture data — raw recordings and extracted frames (large)
+data/dcl_raw/
+data/dcl_frames/
+
+# Built YOLO datasets (re-generate locally)
+datasets/
+
+# Automated test/training results (regenerated per run)
+overnight_results/
+overnight_stdout.log
+pc_loop_results/
+
 # day1_dcl.sh forensic logs — regenerated per run
 dcl_day1_logs/

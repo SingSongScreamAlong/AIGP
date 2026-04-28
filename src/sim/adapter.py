@@ -374,10 +374,10 @@ class DCLSimAdapter:
     in-sim.
     """
 
-    # Best guess at capabilities; adjust when the real API is published.
+    # Updated per DCL tech spec (2026-03): control is Throttle/Roll/
+    # Pitch/Yaw — no velocity or position commands.
     capabilities = (
-        SimCapability.VELOCITY_NED
-        | SimCapability.POSITION_NED
+        SimCapability.ATTITUDE
         | SimCapability.CAMERA_RGB
         | SimCapability.IMU
         | SimCapability.RESET
@@ -434,20 +434,26 @@ class DCLSimAdapter:
 
     # Commands ─────────────────────────────────────────
     async def send_velocity_ned(self, vn, ve, vd, yaw_deg) -> None:
-        # EXPECTED: env.step({'cmd': 'vel_ned', 'vn': vn, ...}) or
-        # similar. The race stack prefers velocity commands (V5.1
-        # planner emits these), so this is the hot path.
+        # DCL tech spec: no velocity commands. RaceLoop uses the
+        # AttitudeController to convert velocity → T/R/P/Y before
+        # reaching this adapter.
         raise NotImplementedError(
-            "DCLSimAdapter.send_velocity_ned: hot path — wire first."
+            "DCLSimAdapter.send_velocity_ned: DCL uses attitude commands "
+            "(Throttle/Roll/Pitch/Yaw). Use send_attitude() via the "
+            "AttitudeController."
         )
 
     async def send_position_ned(self, n, e, d, yaw_deg) -> None:
-        raise NotImplementedError("DCLSimAdapter.send_position_ned")
+        raise NotImplementedError(
+            "DCLSimAdapter.send_position_ned: DCL uses attitude commands."
+        )
 
     async def send_attitude(self, roll_deg, pitch_deg, yaw_deg, thrust) -> None:
-        # Attitude control may or may not be supported by DCL. If not,
-        # strip the ATTITUDE capability flag on publish.
-        raise NotImplementedError("DCLSimAdapter.send_attitude")
+        # HOT PATH. EXPECTED: env.step({'throttle': thrust, 'roll': roll_deg,
+        # 'pitch': pitch_deg, 'yaw': yaw_deg}) or similar.
+        raise NotImplementedError(
+            "DCLSimAdapter.send_attitude: hot path — wire first when SDK ships."
+        )
 
     # Action / flight mode ─────────────────────────────
     # DCL sim likely starts the drone already flying — gym-style envs

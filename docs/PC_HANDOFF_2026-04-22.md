@@ -97,7 +97,7 @@ ai-grand-prix/
 - 6+ paired A/B experiments
 - Adopted: `px4_speed_ceiling=9.5`, `max_speed=12.0`, `transition_blend`
 - Identified PX4 ~2.5 m/s tracking floor as environment ceiling
-- **LOCKED baseline:** V5.1, mixed 22.8–24.5s, technical 13.3–13.7s, 95% completion
+- **LOCKED baseline:** V5.1, mixed 22.8–24.5s, technical 13.3–13.7s, **100% completion across 1200 sandbox trials** (S19w re-validation; the older "95%" was a timeout artifact on sprint×harsh)
 
 ### Epoch 3: Perception (Apr 14–20)
 - VirtualCamera + GateTracker + VisionNav pipeline
@@ -108,11 +108,17 @@ ai-grand-prix/
 - SimAdapter abstraction (PX4, MockKinematic, MockDCL)
 - RaceLoop + RaceRunner architecture
 
-### Epoch 4: Race-Ready Stack (Apr 20–22) — MOST RECENT
+### Epoch 4: Race-Ready Stack (Apr 20–22)
 - **GateSequencer** (`src/race/gate_sequencer.py`): Track-agnostic gate discovery. Detects, latches, passes, suppresses, predicts next gate position. CLI: `--discovery` flag. 11 tests pass.
 - **ClassicalGateDetector** (`src/vision/classical_detector.py`): HSV color + contour for VQ1 highlighted gates. 9 color profiles, range from apparent size, body-frame bearings. CLI: `--detector classical`. 9 tests pass.
 - **YOLO pipeline wired**: `YoloPnpDetector` → `GateDetection` → navigator chain complete. Blocked on trained gate model (base `yolov8n-pose.pt` detects human poses, not gates). Contract tests pass.
 - **Belief yaw fix validated**: Offline mock A/B confirms mild/belief 0/3 → 3/3, search 83% → 7%. Full PX4 retest recommended.
+
+### Epoch 5: DCL-prep + Sandbox Soak + Identity Association (Apr 22–24) — MOST RECENT
+- **DCL scaffolding closed (S19v):** `MockDCLAdapter` + 6 seam contract tests + `test_dcl_smoke.py` (3 end-to-end CLI tests) + `scripts/day1_dcl.sh` (mechanical day-1 sequence with per-step logging). **Day-1 DCL action is now one shell command.**
+- **Sandbox soak harness (S19w):** `soak.py` runs 900 trials in 30 s wallclock via `realtime=False` fast-time mode. Seed variance threaded through VirtualCamera → VirtualDetector → make_detector. New `brutal` noise profile. Per-tick `StepResult.pos_ned`/`yaw_deg` instrumentation. 1200-trial soak (3 courses × 4 noise profiles × ~100 seeds) showed **0% algorithmic failure**; the legacy "1/20 fails" was a timeout artifact on sprint×harsh, confirmed by re-running at 45 s and 90 s budgets (100/100 both).
+- **IdentityTagger for real-YOLO association (S19x):** `src/vision/identity.py` backprojects detections through adapter pose to NED + nearest-gate match + ambiguity gate. Wraps any Detector via `TaggedDetector`. Closes gap 3 (real-YOLO vision anchor) structurally; integration mechanical via new `--tag-identities` CLI flag. 17 unit tests + 1 dynamic integration test. Back-check finding (S19x-f): V5.1 swallows the cascade in typical topology, so the tagger is insurance for the real-YOLO distractor regime, not operationally load-bearing today.
+- **Test harness repair (S19x):** `conftest.py` at repo root installs a canonical mavsdk stub once; fixes 23 cross-file `ImportError`s that had been silently breaking aggregate `pytest`. Full suite now **124/124 in ~64 s under naked `pytest`**.
 
 ---
 
@@ -127,26 +133,31 @@ ai-grand-prix/
 | 3 | **Retrain YOLOv8-pose on DCL gate visuals** | Needs GPU (RTX 3060+ = 15-30 min vs hours on CPU) | 1–2 days |
 | 4 | **Tune classical detector HSV ranges** | Need real DCL gate color samples | 1 hour |
 | 5 | **Validate PnP gate dimensions** | Confirm gate physical size matches 2.0m assumption | 30 min |
-| 6 | **Full PX4 A/B for yaw fix** | PX4 SITL only runs well on your PC | 2 hours |
+| 6 | **Full PX4 A/B for yaw fix + soak re-validation** | PX4 SITL only runs well on your PC. Re-run `soak.py`-equivalent soak vs PX4 at N≥20 to corroborate the 100% sandbox claim against real physics. | 2–3 hours |
+| 7 | **First real-YOLO end-to-end run** | `python run_race.py --backend mock_kinematic --detector yolo_pnp --model-path <weights.pt> --tag-identities`. Highest-information first experiment once weights are loadable. | 1 hour |
 
 ### Before DCL Sim Drops (~May)
 
-| # | Task | Where | Effort |
-|---|------|-------|--------|
-| 7 | Minimum-snap trajectory optimizer | Mac or PC | 2–3 days |
-| 8 | Look-ahead navigation (2-3 gates) | Mac or PC | 1 day |
-| 9 | Soak test harness improvements | Mac or PC | 1 day |
-| 10 | Replay/analysis tooling (flight path viz) | Mac or PC | 1 day |
+| # | Task | Where | Effort | Status |
+|---|------|-------|--------|--------|
+| 8 | Minimum-snap trajectory optimizer | Mac or PC | 2–3 days | deferred — V5.1 locked and at 100% sandbox |
+| 9 | Look-ahead navigation (2-3 gates) | Mac or PC | 1 day | deferred — same |
+| 10 | Soak test harness | Mac or PC | — | **✓ DONE (S19w)** — `soak.py`, `realtime=False`, seed variance, classifier |
+| 11 | Replay/analysis tooling (flight path viz) | Mac or PC | 1 day | deferred (gap 8, low priority) — `StepResult` already instrumented |
+| 12 | Distractor-augmented YOLO training data-gen pipeline | PC (CPU-only for gen) | 1 day | **Round 2 critical** — data-gen can ship pre-GPU |
 
 ### When DCL Sim Drops (May, Day 1)
 
+Follow `scripts/day1_dcl.sh` (S19v) — mechanical sequence with per-step forensic logging to `dcl_day1_logs/`.
+
 | # | Task | Details |
 |---|------|---------|
-| 11 | Download sim, extract camera intrinsics | Update PnP focal length / principal point |
-| 12 | Build `DCLSimAdapter` | Fill in the real adapter (scaffold in `mock_dcl.py` is ready) |
-| 13 | End-to-end run: `--backend dcl --detector classical` | First completion on real sim |
-| 14 | Capture 500+ frames from sim, retrain YOLO | Fine-tune on competition visuals |
-| 15 | Submit first qualifying run | Slow but clean > fast but crashes |
+| 13 | Download sim, extract camera intrinsics | Update PnP focal length / principal point |
+| 14 | Fill in `DCLSimAdapter` work methods | `src/sim/adapter.py::DCLSimAdapter` is a stub (raises `NotImplementedError`). `MockDCLAdapter` (S19t) is a drop-in shape reference. Invert the seam contract tests (`test_dcl_adapter_seam.py`) when real SDK methods compile. |
+| 15 | End-to-end smoke: `scripts/day1_dcl.sh --model <path-to-weights.pt>` | Walks through connect → arm → takeoff → offboard → race. `test_dcl_smoke.py` (S19v) provides the same 3-test shape pre-integration. |
+| 16 | First competition run: `python run_race.py --backend dcl --detector yolo_pnp --model-path <weights.pt> --tag-identities` | Tagger flag turns on real-YOLO identity association. |
+| 17 | Capture 500+ frames from sim, retrain YOLO | Fine-tune on competition visuals |
+| 18 | Submit first qualifying run | Slow but clean > fast but crashes |
 
 ### Speed Phase (June–July)
 

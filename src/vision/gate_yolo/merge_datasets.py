@@ -81,4 +81,15 @@ names: ['gate']
 
 
 if __name__ == "__main__":
-    merge()
+    import argparse
+    p = argparse.ArgumentParser(
+        description="Merge multiple YOLO dataset batches into one.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p.add_argument("--output", default="datasets/gates_merged",
+                   help="Output directory for merged dataset.")
+    p.add_argument("--dirs", nargs="+", default=None,
+                   help="Explicit list of dataset directories to merge. "
+                        "If not set, auto-discovers datasets/gates* dirs.")
+    args = p.parse_args()
+    merge(output_dir=args.output, batch_dirs=args.dirs)

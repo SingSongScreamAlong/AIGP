@@ -2974,3 +2974,92 @@ No gaps closed or opened. One clarification: gap 6 ("legacy-path navigator recov
 ### Where we are now
 
 Post-S19w, **the sim-side testing harness is the mature thing in the stack**. We have a fast-time sandbox soak that runs 900 trials in 30 s and will surface any future detector-side regression as soon as we add it. The remaining unknowns are all external: DCL SDK behaviour (weeks away), real hardware behaviour (months away), real YOLO behaviour under race lighting (GPU-blocked for training, hardware-blocked for evaluation). The asymmetric-cost argument for waiting still holds, and with this harness the waiting window now has a mechanical regression check for anything we touch.
+
+---
+
+## Session 19x — Pre-DCL perception prep: IdentityTagger + test harness repair (2026-04-24)
+
+### Why this session
+
+Two drivers. First, an audit of S19w's changes surfaced a real bug: running `pytest` across multiple test files in one invocation failed 23 tests with `ImportError: cannot import name 'System' from 'mavsdk'`. Individual per-file pytest runs had always worked, but naked `pytest` (or any aggregate CI invocation) was broken. Second, strategic direction: the next highest-payoff pre-DCL work is the perception swap, and the specific pre-req that's unblocked in the sandbox — no GPU, no gate-trained weights, no DCL SDK — is the data-association layer that converts real-YOLO's `gate_idx=-1` detections into identity-tagged ones the race loop's `target_idx` picker can use.
+
+### What landed
+
+**`conftest.py` at repo root — single mavsdk stub, one place.** Several legacy test files each install their own mavsdk stub at module import time, guarded by `if "mavsdk" not in sys.modules`. Three of them (`test_gate_belief.py`, `test_belief_replay.py`, `test_belief_nav_gate_aware.py`) only set `mavsdk.offboard.VelocityNedYaw` — they never set `mavsdk.System`. Under a multi-file pytest invocation, alphabetical collection order meant one of those short stubs always landed first; every other test file's full stub was short-circuited by the `not in` guard; `vision_nav.py`'s `from mavsdk import System` then `ImportError`ed. The fix is one module-level stub in `conftest.py`, which pytest loads before walking the test tree — all subsequent per-file stubs become idempotent no-ops. Also added `collect_ignore_glob` for the files that need `lsy_drone_racing` (gitignored) or `cv2`/`torch` (sandbox doesn't have them): `ab_exit_s11_test.py`, `s16_vision_test.py`, `s18_belief_test.py`, `test_connect.py`, `test_render.py`, `test_classical_detector.py`, `test_yolo_pipeline.py`, `sims/**`.
+
+**Effect:** `pytest` from repo root now collects and runs everything: **123 passed, 10 warnings in 63 s** (106 existing + 17 new from S19x).
+
+**`soak.py` cleanups.** `--noises` help-string added `brutal` (was `(clean|mild|harsh)`). Removed unused `field` import from `dataclasses`. Classifier `lost_target` threshold now uses per-step timestamps instead of a hardcoded `1.0/50.0`, so the harness is rate-independent — future `--command-hz 30` runs classify correctly.
+
+**`src/vision/identity.py` — the real work.** Two classes:
+- `IdentityTagger(gates_ned, accept_radius_m=2.5, ambiguity_ratio=1.3)`. Back-projects a body-frame detection (bearing_h, bearing_v, range_est) through drone pose (pos_ned, yaw_rad) into world NED, then nearest-neighbours against the configured gate list. Returns the detection with `gate_idx` filled in, or `-1` when unmatched (beyond accept radius) or ambiguous (second-nearest within `ambiguity_ratio × nearest`). Detections that already carry a valid `gate_idx ≥ 0` pass through unchanged — lets the tagger be wrapped around VirtualDetector defensively without clobbering sim-truth tags.
+- `TaggedDetector(inner, tagger)`. Wraps any Detector, calls `inner.detect(frame, state)`, re-tags output using `state.pos_ned` + `state.att_rad[2]`. Drop-in replacement for any `Detector` — satisfies the same Protocol. `.name()` surfaces the composition so logs show `"tagged[yolo_pnp[gate_weights.pt]]"`.
+
+Plus `backproject_ned(...)` as a module-level function — exposed for reuse (the replay tests could profit from it; a future flight-replay visualiser definitely would).
+
+**Design rationale worth keeping:**
+- **Accept-radius + ambiguity-ratio, not max-likelihood.** A physical 2 m gate at typical range has back-projection noise well under 1 m for clean bearings; the failure we're guarding against is gross mis-association (just-passed gate vs. real target, >5 m apart in NED), not fine-grained multi-hypothesis tracking. A 2.5 m radius + 1.3× ratio is enough to trade a handful of over-rejections for zero cross-tags. Upgrade only if real YOLO data proves it's needed.
+- **Pull pose from adapter state, not fused estimate.** Fusion can diverge; adapter truth cannot. If the ESKF blows up, a tagger using fused pose would stamp detections with *wrong identity* and lock belief onto the wrong gate. Using adapter state means the tagger stays correct even when fusion is in the weeds — cost is that the tag is only as good as the adapter's own pose (sim truth in mock/DCL, EKF2 output in PX4/real).
+- **Wrapper Detector, not picker patch.** Keeps the Detector protocol unchanged; swap is a 1-line change at construction. No coupling of association to the loop's `target_idx` state, tagger stays stateless.
+
+### What we verified
+
+`test_identity_tagger.py` — **17 tests, all pass in 0.17 s**:
+- Backprojection math: straight-ahead, yaw=90° east rotation, translation, right-bearing, vertical bearing.
+- Tag accept: clean in-radius match tags correctly.
+- Tag preserves existing ≥0 `gate_idx` (defensive wrap).
+- Tag rejects: out-of-radius → -1; ambiguous (two gates within 1.3× ratio) → -1; empty gate list → -1.
+- Ambiguity gate disable (`ambiguity_ratio=0`) → take nearest regardless.
+- `tag_all` preserves input order.
+- `TaggedDetector` wraps correctly; empty inner → empty out; `.name()` reports composition.
+- **Cascade reproducer (`test_picker_cascade_with_untagged_detections`):** S19m scenario — drone at (8,0,-2) facing N, gate 0 behind at (5,0,-2) and gate 1 ahead at (20,0,-2). Both detections carry `gate_idx=-1` as real YOLO would emit. `RaceLoop._pick_detection(associate_mode="target_idx", target_idx=1)` falls into the permissive `gi < 0` branch and returns the nearest — which is the just-passed gate. Test asserts this happens. That's the bug.
+- **Cascade resolver (`test_picker_resolves_after_tagging`):** Same scenario run through `IdentityTagger`; both detections get correctly tagged (`[0, 1]`); picker's exact-match branch now finds the target. Asserts `picked is tagged[1]`. That's the fix.
+
+Full suite after S19x: **123 passed, 10 warnings in 63 s** under naked `pytest`. No prior tests regressed.
+
+Soak smoke: `python soak.py --n 3 --courses technical --noises clean,brutal --summary-only --timeout 45` → 6/6 completed in 0.1 s wallclock, fail_modes `—`. Rate-independent classifier still works.
+
+### What this DOESN'T prove (yet)
+
+The tagger is *structurally* correct against the known cascade pattern. What it doesn't prove:
+- **That real YOLO actually emits detections with clean enough bearing/range to back-project within the 2.5 m accept radius.** We haven't fed a real YOLO output through it — weights are PC/GPU-blocked. Next pre-DCL step (when PC access is available): run YoloPnpDetector on rendered synthetic frames, pipe through TaggedDetector, confirm tags match ground truth on a known course.
+- **That the 2.5 m / 1.3× defaults survive realistic pose noise.** Sandbox tests use sim-truth pose; real PX4/DCL/hardware pose carries EKF2 noise that can add meters of error at altitude. Needs a stress test with injected pose noise once we have something to measure against.
+- **That the soak's 100% robustness number holds when TaggedDetector is live.** Currently soak runs VirtualDetector (already tagged). A follow-up soak that swaps in `TaggedDetector(StubYolo(gate_idx=-1), IdentityTagger(gates))` would characterise the tagger's contribution without requiring real YOLO.
+
+### Files touched
+
+- `conftest.py` — new, 70 lines. Single mavsdk stub + collection ignores.
+- `soak.py` — help-string, unused import, rate-independent classifier (minor).
+- `src/vision/identity.py` — new, 205 lines. IdentityTagger + TaggedDetector + backproject_ned.
+- `test_identity_tagger.py` — new, 17 tests including cascade reproducer + resolver.
+- `docs/PROJECT_LOG.md` — this entry.
+
+### Gap list after S19x
+
+Gap 3 ("Real-YOLO vision anchor — `_pick_detection` falls back to target_idx when gate_idx=-1") is now **structurally closed** — the tagger exists, is tested against the cascade, and wraps cleanly around YoloPnpDetector. The remaining work is *integration verification against real weights*, which is PC/GPU-blocked. Re-classifying gap 3 from "unresolved risk" to "ready-to-wire, needs PC".
+
+1. ~~**DCL-prep**~~ ✓ Closed S19v.
+2. **ESKF tuning under harsh noise.** Hardware-blocked.
+3. ~~**Real-YOLO vision anchor**~~ — structurally closed via IdentityTagger (S19x). Integration verification PC/GPU-blocked; mechanical once weights + render pipeline are available.
+4. **Centreline-crossing detector scaffold.** Simulator-only work with DCL-invalidation risk.
+5. **Distractor-augmented YOLO training.** GPU-blocked.
+6. **Legacy-path navigator recovery.** De-prioritised (S19w).
+7. **`bench_fusion_ab.py` `--backend` flag.** Day-2 DCL item.
+8. **Flight-replay visualiser** (low priority, S19w).
+9. **(New)** Tagger stress test with injected pose noise. Characterises the 2.5 m / 1.3× defaults against realistic pose error before hardware lands. Sandbox-runnable.
+
+### Where we are now
+
+Pre-DCL, the sandbox-runnable work list now has one fewer item. The perception-swap unblock is ready — `TaggedDetector(YoloPnpDetector(...), IdentityTagger(gates))` is a three-line construction at run_race's wiring site, deferred to the day weights + a rendering path are both available. Meanwhile the stack will run the full 123-test suite in one shot and has one less class of "how do I even run the tests" friction for anyone onboarding.
+
+### Follow-up: dynamic validation (S19x-f)
+
+Added `test_tagger_integration_does_not_regress_completion` — a small integration harness that runs `N=5` full races on technical/mild with (a) stub-untagged detector (`VirtualDetector` output with all `gate_idx` forced to -1, modelling real YOLO behaviour today) vs. (b) `TaggedDetector(stub, IdentityTagger(gates))`. Same physics (`mock_kinematic`, `realtime=False`), same navigator (`BeliefNav`), same seeds per condition.
+
+**Finding: 5/5 both conditions, delta 0.** The cascade the picker unit test demonstrates as a static failure is *not* load-bearing during a running race under typical topology — V5.1 + BeliefNav's existing defences (drone-displacement refractory from S19n/r + gate-aware nav fallback from S19o + the picker's `gi < 0` permissive branch skipping already-passed gates) collectively swallow the bad pick before it compounds.
+
+This is a useful negative result — it reclassifies the IdentityTagger from "operational fix" to "architectural insurance for the real-YOLO distractor regime": the failure mode the tagger actually closes is when detections include *false positives near non-target gates* (texture confusers, reflections), which VirtualDetector + FOV constraints cannot simulate. Adding a distractor-injection test here would be synthesising a failure we have no evidence exists at the right magnitude — better to characterise against real YOLO output once weights are available and use that as calibration.
+
+**Template lesson: `asyncio.run()` is a footgun in multi-file pytest.** First attempt used `asyncio.run(runner.fly(...))` inside the test; the full suite dropped to 104/124 with `RuntimeError: There is no current event loop` errors in every other async test. `asyncio.run()` closes the default event loop at exit, and subsequent tests calling `asyncio.get_event_loop().run_until_complete(...)` then fail because Python 3.10+ no longer auto-creates a default loop when none exists. The fix in sync test helpers is to allocate and close a new loop explicitly (`loop = asyncio.new_event_loop(); try: loop.run_until_complete(...); finally: loop.close()`) — never touch the default loop policy. Full suite after fix: **124 passed, 10 warnings in 64 s**.
+
+Gap list amendment: gap 9 (tagger stress under pose noise) now reframed — the more valuable follow-up is *distractor-injection stress on real YOLO output*, which is PC/GPU-blocked. Pure pose-noise sensitivity against `VirtualDetector` output would just characterize the backprojection math already tested in `test_backproject_*`.

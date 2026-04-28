@@ -62,7 +62,7 @@ import statistics
 import sys
 import time
 import types
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -149,6 +149,9 @@ def classify_trial(
 
     Called after every trial; for completed trials returns ("completed", {...})
     so the caller can still pack diagnostics uniformly.
+
+    Note: uses per-step timestamps for all time-window thresholds, so the
+    classifier is rate-independent — works at any ``--command-hz``.
     """
     if not steps:
         return "no_steps_logged", {}
@@ -165,12 +168,16 @@ def classify_trial(
         t_target_locked_at = s.t
     target_locked_for = last.t - t_target_locked_at
 
-    # Frames without detection at the tail
+    # Frames without detection at the tail (count + wall-time span so
+    # the LOST_WINDOW check is rate-independent).
     frames_lost_at_end = 0
+    t_last_detected = last.t
     for s in reversed(steps):
         if s.detected:
+            t_last_detected = s.t
             break
         frames_lost_at_end += 1
+    lost_for_s = last.t - t_last_detected if frames_lost_at_end > 0 else 0.0
 
     # Commanded motion at the tail
     recent = steps[-min(50, len(steps)) :]
@@ -215,7 +222,7 @@ def classify_trial(
         return "stuck_at_gate", diag
     if cmd_mag_p50 < STALL_CMD_EPS and target_locked_for > STALL_WINDOW_S:
         return "stall", diag
-    if frames_lost_at_end * (1.0 / 50.0) > LOST_WINDOW_S:
+    if lost_for_s > LOST_WINDOW_S:
         return "lost_target", diag
     if dist_to_all_remaining and min(dist_to_all_remaining) > DRIFT_RADIUS:
         return "drifted", diag
@@ -421,7 +428,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                    help="comma-separated list of course names")
     p.add_argument("--noises", default="clean",
                    help="comma-separated list of noise profiles "
-                        "(clean|mild|harsh)")
+                        "(clean|mild|harsh|brutal)")
     p.add_argument("--seed-base", type=int, default=1000, dest="seed_base",
                    help="first trial's seed; subsequent trials use "
                         "seed_base+1, seed_base+2, ...")

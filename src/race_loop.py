@@ -6,8 +6,9 @@ Ties together:
     BeliefNav     (tracker state → velocity command)
     PoseFusion    (optional — IMU + vision fusion; Session 19h)
 
-Runs at command_hz (default 50). Sends velocity-NED commands through
-the adapter every tick.
+Runs at command_hz (default 50). Sends velocity-NED or attitude
+commands through the adapter every tick, depending on adapter
+capabilities.
 
 Design goals:
   * Swappable backends. The loop is the same whether the adapter is
@@ -56,6 +57,9 @@ import math
 import time
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Sequence, Tuple
+
+from sim.adapter import SimCapability
+from control.attitude_controller import AttitudeController
 
 # We import from sim.adapter at type-check time; at runtime the loop
 # only touches duck-typed state / cmd fields, so we don't depend on
@@ -183,6 +187,7 @@ class RaceLoop:
         gates_ned: Optional[Sequence[Tuple[float, float, float]]] = None,
         vision_pos_sigma: float = 0.15,
         gate_sequencer=None,
+        attitude_controller: Optional[AttitudeController] = None,
     ):
         """
         Args:
@@ -245,6 +250,20 @@ class RaceLoop:
         self.gate_count = gate_count
         self.dt = 1.0 / command_hz
         self.associate_mode = associate_mode
+
+        # Attitude controller -----------------------------------------
+        # When the adapter supports ATTITUDE but not VELOCITY_NED (e.g.
+        # DCL), we need to translate velocity commands into T/R/P/Y.
+        # Auto-create a default AttitudeController if none was supplied
+        # and the adapter has the ATTITUDE capability.
+        if attitude_controller is not None:
+            self._attitude_ctrl = attitude_controller
+        elif (hasattr(adapter, 'capabilities')
+              and SimCapability.ATTITUDE in adapter.capabilities
+              and SimCapability.VELOCITY_NED not in adapter.capabilities):
+            self._attitude_ctrl = AttitudeController()
+        else:
+            self._attitude_ctrl = None
 
         # Fusion plumbing ----------------------------------------------
         self.pose_fusion = pose_fusion
@@ -746,7 +765,24 @@ class RaceLoop:
         ve = float(cmd.east_m_s)
         vd = float(cmd.down_m_s)
         cy = float(cmd.yaw_deg)
-        await self.adapter.send_velocity_ned(vn, ve, vd, cy)
+
+        if self._attitude_ctrl is not None:
+            # Attitude path: convert velocity NED → T/R/P/Y.
+            att_cmd = self._attitude_ctrl.convert(
+                desired_vn=vn,
+                desired_ve=ve,
+                desired_vd=vd,
+                desired_yaw_deg=cy,
+                current_vel_ned=state.vel_ned,
+                current_yaw_deg=yaw_deg,
+                dt=self.dt,
+            )
+            await self.adapter.send_attitude(
+                att_cmd.roll_deg, att_cmd.pitch_deg,
+                att_cmd.yaw_deg, att_cmd.throttle,
+            )
+        else:
+            await self.adapter.send_velocity_ned(vn, ve, vd, cy)
 
         # Gate-pass dispatch. When a GateSequencer is active, it already
         # handled pass detection in the step() preamble above — use its

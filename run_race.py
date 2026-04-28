@@ -191,6 +191,23 @@ def main(argv=None) -> int:
                    dest="vision_pos_sigma",
                    help="1-σ (m) noise on backprojected vision position fixes "
                         "when --fusion is set.")
+    p.add_argument("--tag-identities", action="store_true",
+                   dest="tag_identities",
+                   help="Wrap the detector in a TaggedDetector(IdentityTagger) "
+                        "before it enters the race loop. Back-projects each "
+                        "detection through adapter pose to NED and assigns "
+                        "gate_idx via nearest-gate match. Required for real "
+                        "YOLO (which emits gate_idx=-1) to use the picker's "
+                        "target_idx exact-match branch; no-op on VirtualDetector "
+                        "output, which is already tagged.")
+    p.add_argument("--tag-accept-radius", type=float, default=2.5,
+                   dest="tag_accept_radius",
+                   help="IdentityTagger accept_radius_m (only used with "
+                        "--tag-identities). Raise under higher pose noise.")
+    p.add_argument("--tag-ambiguity-ratio", type=float, default=1.3,
+                   dest="tag_ambiguity_ratio",
+                   help="IdentityTagger ambiguity_ratio (only used with "
+                        "--tag-identities). 0 disables the second-nearest check.")
     p.add_argument("--discovery", action="store_true",
                    help="Track-agnostic mode: discover gates from vision instead "
                         "of using hardcoded gate positions. Uses GateSequencer "
@@ -235,6 +252,19 @@ def main(argv=None) -> int:
     # Build the pieces
     adapter = build_adapter(args.backend, args.connection)
     detector = build_detector(args.detector, gates, args.noise, args.model_path)
+
+    # Optional identity tagging. No-op on VirtualDetector (already tagged);
+    # load-bearing on YoloPnpDetector / ClassicalGateDetector which emit
+    # gate_idx=-1. The wrapping is visible in detector.name() below so the
+    # flight summary records which path actually ran.
+    if args.tag_identities:
+        from vision.identity import IdentityTagger, TaggedDetector
+        tagger = IdentityTagger(
+            gates,
+            accept_radius_m=args.tag_accept_radius,
+            ambiguity_ratio=args.tag_ambiguity_ratio,
+        )
+        detector = TaggedDetector(detector, tagger)
 
     # Optional track-agnostic gate sequencer
     gate_sequencer = None
