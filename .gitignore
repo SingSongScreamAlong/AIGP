@@ -37,7 +37,9 @@ overnight_results/
 overnight_stdout.log
 pc_loop_results/
 autonomous_results/
+mac_grind_results/
 runs/
+.venv/
 
 # day1_dcl.sh forensic logs — regenerated per run
 dcl_day1_logs/
