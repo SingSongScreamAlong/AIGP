@@ -24,22 +24,29 @@ if errorlevel 1 (
 
 :: Install dependencies
 echo Installing Python packages...
-pip install ultralytics opencv-python numpy torch torchvision --upgrade
+pip install ultralytics opencv-python numpy torch torchvision mujoco pyyaml --upgrade
 echo.
 
 :: Check GPU
 python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}' if torch.cuda.is_available() else 'WARNING: No GPU detected - training will be slow')"
 echo.
 
+:: Check MuJoCo
+python -c "import mujoco; print(f'MuJoCo: {mujoco.__version__}')" 2>nul
+if errorlevel 1 (
+    echo WARNING: MuJoCo import failed. Will use OpenCV fallback for data generation.
+)
+echo.
+
 echo ============================================================
 echo   Setup complete!
 echo.
-echo   To start the 24/7 loop:
-echo     1. Open DCL The Game in windowed mode
-echo     2. Start a free flight or race
-echo     3. Run:  python run_pc_loop.py --capture-duration 120
+echo   FULLY AUTONOMOUS (no DCL needed):
+echo     python run_pc_autonomous.py
+echo     python run_pc_autonomous.py --cycles 10 --images-per-cycle 1000
+echo     python run_pc_autonomous.py --quick    (smoke test)
 echo.
-echo   Or for just training (no capture):
-echo     python run_pc_loop.py --train-only
+echo   WITH DCL CAPTURE (DCL must be running):
+echo     python run_pc_loop.py --capture-duration 120
 echo ============================================================
 pause

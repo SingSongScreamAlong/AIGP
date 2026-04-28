@@ -36,6 +36,8 @@ datasets/
 overnight_results/
 overnight_stdout.log
 pc_loop_results/
+autonomous_results/
+runs/
 
 # day1_dcl.sh forensic logs — regenerated per run
 dcl_day1_logs/
