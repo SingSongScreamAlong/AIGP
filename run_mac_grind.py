@@ -42,6 +42,27 @@ _MODELS_DIR = _REPO / "models"
 sys.path.insert(0, str(_REPO / "src"))
 sys.path.insert(0, str(_REPO / "src" / "vision" / "gate_yolo"))
 
+# Stub mavsdk if not installed (needed by vision_nav → VirtualDetector)
+try:
+    import mavsdk  # noqa: F401
+except ImportError:
+    import types
+    _m = types.ModuleType("mavsdk")
+    _o = types.ModuleType("mavsdk.offboard")
+    class _S:
+        def __init__(self, *a, **k): pass
+    _m.System = _S
+    class _VNY:
+        def __init__(self, vn, ve, vd, yd):
+            self.north_m_s, self.east_m_s = vn, ve
+            self.down_m_s, self.yaw_deg = vd, yd
+    _o.VelocityNedYaw = _VNY
+    for _n in ("PositionNedYaw", "Attitude"):
+        setattr(_o, _n, type(_n, (), {"__init__": lambda self, *a, **k: None}))
+    _o.OffboardError = type("OffboardError", (Exception,), {})
+    sys.modules["mavsdk"] = _m
+    sys.modules["mavsdk.offboard"] = _o
+
 
 def _log(path: Path, msg: str):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -204,20 +225,20 @@ def phase_sweep(num_configs: int = 2000) -> dict:
     courses = list_courses()
     noise_profiles = ["clean", "mild"]
 
-    # Fine grid
-    kp_range = np.linspace(2.0, 12.0, 15)
-    ki_range = np.linspace(0.0, 1.5, 8)
-    kd_range = np.linspace(0.0, 2.0, 8)
-    speed_range = np.linspace(4.0, 14.0, 8)
+    # Focused grid around known-good region (kp=3-9, ki=0.1-1.0, kd=0.2-1.5)
+    kp_range = np.linspace(3.0, 10.0, 12)
+    ki_range = np.linspace(0.1, 1.0, 8)
+    kd_range = np.linspace(0.2, 1.5, 7)
+    cruise_range = [5.0, 6.0, 7.0, 8.0, 10.0]
 
     # Generate configs — sample if too many
-    all_combos = list(itertools.product(kp_range, ki_range, kd_range))
+    all_combos = list(itertools.product(kp_range, ki_range, kd_range, cruise_range))
     if len(all_combos) > num_configs:
         import random
         random.shuffle(all_combos)
         all_combos = all_combos[:num_configs]
 
-    _log(log, f"  Grid: {len(all_combos)} PID combos × {len(courses)} courses × {len(noise_profiles)} noise")
+    _log(log, f"  Grid: {len(all_combos)} combos (kp×ki×kd×speed) × {len(courses)} courses × {len(noise_profiles)} noise")
     total_experiments = len(all_combos) * len(courses) * len(noise_profiles)
     _log(log, f"  Total experiments: {total_experiments}")
 
@@ -227,45 +248,56 @@ def phase_sweep(num_configs: int = 2000) -> dict:
     completed = 0
     t0 = time.time()
 
-    async def run_one(kp, ki, kd, course_name, noise):
+    async def run_one(kp, ki, kd, cruise_speed, course_name, noise):
+        import warnings
         gates = get_course(course_name)
-        adapter = MockDCLAdapter()
+        adapter = MockDCLAdapter(initial_altitude_m=2.0)
+        await adapter.connect()
         gains = PIDGains(kp=kp, ki=ki, kd=kd)
         ctrl = AttitudeController(
-            vel_xy_gains=gains,
-            vel_z_gains=PIDGains(kp=3.0, ki=0.5, kd=0.5),
+            vel_north_gains=gains,
+            vel_east_gains=gains,
+            vel_down_gains=PIDGains(kp=3.0, ki=0.5, kd=0.5),
         )
         from vision.detector import VirtualDetector
+        from gate_belief import BeliefNav
         det = VirtualDetector(gates, noise_profile=noise)
-        loop = RaceLoop(
-            adapter=adapter, detector=det, gates_ned=gates,
-            attitude_controller=ctrl, dt=0.05,
-        )
+        nav = BeliefNav(max_speed=cruise_speed * 1.4, cruise_speed=cruise_speed)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            loop = RaceLoop(
+                adapter=adapter, detector=det, navigator=nav,
+                gate_count=len(gates), gates_ned=gates,
+                attitude_controller=ctrl, command_hz=50,
+            )
         try:
-            result = await loop.run(timeout_s=90.0, realtime=False)
+            result = await loop.run(timeout_s=120.0, realtime=False)
+            await adapter.disconnect()
             return {
                 "gates_passed": result.gates_passed,
-                "total_gates": result.total_gates,
-                "time_s": result.elapsed_s,
-                "completed": result.gates_passed == result.total_gates,
+                "gate_count": result.gate_count,
+                "time_s": result.total_time_s,
+                "completed": result.completed,
             }
         except Exception as e:
+            await adapter.disconnect()
             return {"error": str(e), "completed": False}
 
-    for idx, (kp, ki, kd) in enumerate(all_combos):
+    for idx, (kp, ki, kd, cruise_speed) in enumerate(all_combos):
         for course_name in courses:
             for noise in noise_profiles:
-                r = asyncio.run(run_one(kp, ki, kd, course_name, noise))
+                r = asyncio.run(run_one(kp, ki, kd, cruise_speed, course_name, noise))
                 r.update({
                     "kp": float(kp), "ki": float(ki), "kd": float(kd),
+                    "cruise_speed": float(cruise_speed),
                     "course": course_name, "noise": noise,
                 })
                 results.append(r)
                 completed += 1
 
-                if r.get("completed") and r["time_s"] < best_time:
+                if r.get("completed") and r.get("time_s", float('inf')) < best_time:
                     best_time = r["time_s"]
-                    best_config = (kp, ki, kd, course_name, noise)
+                    best_config = (kp, ki, kd, cruise_speed, course_name, noise)
 
                 if completed % 100 == 0:
                     elapsed = time.time() - t0
@@ -299,8 +331,11 @@ def phase_sweep(num_configs: int = 2000) -> dict:
 
     elapsed = time.time() - t0
     _log(log, f"Sweep done: {completed} experiments in {elapsed:.0f}s")
-    _log(log, f"Best: kp={best_config[0]:.1f} ki={best_config[1]:.1f} kd={best_config[2]:.1f} "
-         f"→ {best_time:.1f}s on {best_config[3]}/{best_config[4]}")
+    if best_config:
+        _log(log, f"Best: kp={best_config[0]:.1f} ki={best_config[1]:.1f} kd={best_config[2]:.1f} "
+             f"speed={best_config[3]:.0f} → {best_time:.1f}s on {best_config[4]}/{best_config[5]}")
+    else:
+        _log(log, "No configs completed all gates within timeout.")
 
     return summary
 
