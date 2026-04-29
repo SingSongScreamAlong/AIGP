@@ -275,7 +275,7 @@ def phase_sweep(num_configs: int = 2000) -> dict:
     from race_loop import RaceLoop
 
     courses = list_courses()
-    noise_profiles = ["clean", "mild", "heavy"]
+    noise_profiles = ["clean", "mild", "harsh"]
 
     # Tight grid around proven sweet-spot (kp≈7-9, ki≈0.3-0.7, kd≈0.9-1.5)
     kp_range = np.linspace(6.0, 10.0, 10)
