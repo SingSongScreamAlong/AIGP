@@ -75,20 +75,50 @@ def _log(path: Path, msg: str):
 # PHASE A: Synthetic Data Generation
 # ══════════════════════════════════════════════════════════════
 
+_CYCLE_COUNT_FILE = _DATASET_DIR / ".cycle_count"
+
+
+def _get_cycle_num() -> int:
+    """Track how many data gen cycles we've done for accumulation."""
+    if _CYCLE_COUNT_FILE.exists():
+        return int(_CYCLE_COUNT_FILE.read_text().strip()) + 1
+    return 0
+
+
+def _save_cycle_num(n: int):
+    _CYCLE_COUNT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _CYCLE_COUNT_FILE.write_text(str(n))
+
+
 def phase_data(num_images: int = 5000, use_keypoints: bool = True) -> str | None:
-    """Generate massive synthetic gate dataset using MuJoCo."""
+    """Generate synthetic gate dataset, accumulating across cycles.
+    
+    Each cycle adds new images with unique prefixes so they don't overwrite
+    previous data. The dataset grows over time for better training.
+    """
     log = _OUT / "data_gen.log"
-    _log(log, f"Starting data generation: {num_images} images")
+    cycle = _get_cycle_num()
+    _log(log, f"Starting data generation: {num_images} images (cycle {cycle})")
     _log(log, f"Keypoints: {use_keypoints}")
 
     _DATASET_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Cap total dataset size — if already large enough, skip gen and just retrain
+    existing_train = list((_DATASET_DIR / "train" / "images").glob("*.jpg")) if (_DATASET_DIR / "train" / "images").exists() else []
+    max_total = 30000
+    if len(existing_train) >= max_total:
+        _log(log, f"Dataset already has {len(existing_train)} images (cap={max_total}), skipping gen")
+        yaml_path = str(_DATASET_DIR / "data.yaml")
+        return yaml_path if Path(yaml_path).exists() else None
 
     try:
         if use_keypoints:
             from generate_data_keypoints import SyntheticKeypointGenerator
             gen = SyntheticKeypointGenerator(img_w=640, img_h=480, fov=90.0)
+            # Use cycle prefix to avoid overwriting existing files
             yaml_path = gen.generate_dataset(
                 str(_DATASET_DIR), num_samples=num_images, train_split=0.85,
+                prefix=f"c{cycle:03d}_",
             )
         else:
             from generate_data import SyntheticDataGenerator
@@ -98,19 +128,35 @@ def phase_data(num_images: int = 5000, use_keypoints: bool = True) -> str | None
                 train_split=0.85, randomize=True,
             )
 
-        _log(log, f"Generated {num_images} images → {yaml_path}")
+        total = len(list((_DATASET_DIR / "train" / "images").glob("*.jpg"))) if (_DATASET_DIR / "train" / "images").exists() else num_images
+        _log(log, f"Generated {num_images} images (total now: {total}) → {yaml_path}")
+        _save_cycle_num(cycle)
         return yaml_path
 
     except Exception as e:
-        _log(log, f"MuJoCo failed: {e}")
-        _log(log, "Falling back to OpenCV generator...")
-
-        # Import the autonomous script's OpenCV fallback
-        sys.path.insert(0, str(_REPO))
-        from run_pc_autonomous import _generate_opencv_gates
-        yaml_path = _generate_opencv_gates(num_images, _DATASET_DIR)
-        _log(log, f"OpenCV fallback generated {num_images} images → {yaml_path}")
-        return yaml_path
+        _log(log, f"Generator error: {e}")
+        # If prefix not supported, fall back to overwrite mode
+        _log(log, "Retrying without prefix (overwrite mode)...")
+        try:
+            if use_keypoints:
+                from generate_data_keypoints import SyntheticKeypointGenerator
+                gen = SyntheticKeypointGenerator(img_w=640, img_h=480, fov=90.0)
+                yaml_path = gen.generate_dataset(
+                    str(_DATASET_DIR), num_samples=num_images, train_split=0.85,
+                )
+            else:
+                from generate_data import SyntheticDataGenerator
+                gen = SyntheticDataGenerator(width=640, height=480)
+                yaml_path = gen.generate_dataset(
+                    str(_DATASET_DIR), num_images=num_images,
+                    train_split=0.85, randomize=True,
+                )
+            _log(log, f"Generated {num_images} images → {yaml_path}")
+            _save_cycle_num(cycle)
+            return yaml_path
+        except Exception as e2:
+            _log(log, f"All generators failed: {e2}")
+            return None
 
 
 # ══════════════════════════════════════════════════════════════
@@ -148,7 +194,13 @@ def phase_train(
 
     from ultralytics import YOLO
 
-    model = YOLO(base_model)
+    # Use previous best if it exists (transfer learning)
+    prev_best = _MODELS_DIR / "gate_detector_cpu.pt"
+    if prev_best.exists():
+        _log(log, f"  Transfer learning from previous best: {prev_best}")
+        model = YOLO(str(prev_best))
+    else:
+        model = YOLO(base_model)
     t0 = time.time()
 
     model.train(
@@ -223,13 +275,13 @@ def phase_sweep(num_configs: int = 2000) -> dict:
     from race_loop import RaceLoop
 
     courses = list_courses()
-    noise_profiles = ["clean", "mild"]
+    noise_profiles = ["clean", "mild", "heavy"]
 
-    # Focused grid around known-good region (kp=3-9, ki=0.1-1.0, kd=0.2-1.5)
-    kp_range = np.linspace(3.0, 10.0, 12)
-    ki_range = np.linspace(0.1, 1.0, 8)
-    kd_range = np.linspace(0.2, 1.5, 7)
-    cruise_range = [5.0, 6.0, 7.0, 8.0, 10.0]
+    # Tight grid around proven sweet-spot (kp≈7-9, ki≈0.3-0.7, kd≈0.9-1.5)
+    kp_range = np.linspace(6.0, 10.0, 10)
+    ki_range = np.linspace(0.2, 0.8, 6)
+    kd_range = np.linspace(0.8, 1.6, 6)
+    cruise_range = [8.0, 9.0, 10.0, 11.0, 12.0]
 
     # Generate configs — sample if too many
     all_combos = list(itertools.product(kp_range, ki_range, kd_range, cruise_range))

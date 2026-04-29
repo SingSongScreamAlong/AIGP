@@ -133,7 +133,7 @@ class AttitudeController:
         # Velocity-to-pitch PID (north velocity error → pitch angle)
         # Positive vn error → need nose down (positive pitch in FRD) to accelerate north
         self.vel_north_gains = vel_north_gains or PIDGains(
-            kp=5.0, ki=0.5, kd=1.0,
+            kp=8.0, ki=0.5, kd=1.3,
             output_limit=max_pitch_deg,
             integral_limit=max_pitch_deg * 0.5,
         )
@@ -141,7 +141,7 @@ class AttitudeController:
         # Velocity-to-roll PID (east velocity error → roll angle)
         # Positive ve error → need right roll (positive roll) to accelerate east
         self.vel_east_gains = vel_east_gains or PIDGains(
-            kp=5.0, ki=0.5, kd=1.0,
+            kp=8.0, ki=0.5, kd=1.3,
             output_limit=max_roll_deg,
             integral_limit=max_roll_deg * 0.5,
         )

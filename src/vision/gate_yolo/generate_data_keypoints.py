@@ -500,9 +500,15 @@ class SyntheticKeypointGenerator:
 
         return frame, labels
 
-    def generate_dataset(self, output_dir, num_samples=500, train_split=0.8):
+    def generate_dataset(self, output_dir, num_samples=500, train_split=0.8, prefix=""):
         """
         Generate a complete YOLOv8-pose format dataset.
+
+        Args:
+            output_dir: Root directory for the dataset.
+            num_samples: Number of images to generate.
+            train_split: Fraction of images for training.
+            prefix: Optional filename prefix for accumulation across cycles.
 
         Creates:
             output_dir/
@@ -559,11 +565,11 @@ class SyntheticKeypointGenerator:
             total_gates += len(labels)
 
             # Save image (convert RGB to BGR for OpenCV)
-            img_path = output / split / "images" / f"gate_kp_{idx:05d}.jpg"
+            img_path = output / split / "images" / f"{prefix}gate_kp_{idx:05d}.jpg"
             cv2.imwrite(str(img_path), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
             # Save labels
-            label_path = output / split / "labels" / f"gate_kp_{idx:05d}.txt"
+            label_path = output / split / "labels" / f"{prefix}gate_kp_{idx:05d}.txt"
             with open(label_path, "w") as f:
                 f.write("\n".join(labels) + "\n")
 
