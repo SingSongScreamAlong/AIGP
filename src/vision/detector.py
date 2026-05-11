@@ -169,12 +169,12 @@ class YoloPnpDetector:
     even with a high YOLO score.
     """
 
-    # Default intrinsics for Neros 12MP wide-angle camera. Override
-    # via constructor if you calibrate.
+    # VADR-TS-002 §3.8 defaults — official vision stream is 640×360,
+    # pinhole fx=fy=320, cx=320, cy=180 (HFoV=90°, VFoV≈58.36°)
     DEFAULT_FOV_DEG = 90.0
     DEFAULT_IMG_W = 640
-    DEFAULT_IMG_H = 480
-    GATE_PHYSICAL_SIZE = 2.0  # meters, consistent with VirtualCamera
+    DEFAULT_IMG_H = 360
+    GATE_PHYSICAL_SIZE = 1.5  # VADR-TS-002 §3.7: inner opening 1.5m × 1.5m
 
     def __init__(
         self,

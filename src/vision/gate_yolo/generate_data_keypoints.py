@@ -53,11 +53,14 @@ except ImportError:
 # ============================================================
 # Gate Geometry Constants
 # ============================================================
-# Gate opening half-size (the hole the drone flies through)
-GATE_HALF_SIZE = 0.2  # 0.4m x 0.4m opening
+# Gate opening half-size (the hole the drone flies through) — VADR-TS-002 §3.7
+GATE_HALF_SIZE = 0.75  # 1.5m x 1.5m inner opening per spec
 
-# Gate outer frame half-size
-FRAME_HALF_SIZE = 0.35  # 0.7m x 0.7m outer frame
+# Gate outer frame half-size — VADR-TS-002 §3.7
+FRAME_HALF_SIZE = 1.35  # 2.7m x 2.7m outer frame per spec
+
+# Gate depth half-size — VADR-TS-002 §3.7 (depth 260mm)
+GATE_DEPTH_HALF = 0.13
 
 # 4 corners of the gate OPENING in the gate's local coordinate frame
 # Order: top-left, top-right, bottom-right, bottom-left (clockwise from top-left)
@@ -77,18 +80,29 @@ GATE_FRAME_CORNERS_LOCAL = np.array([
     [-FRAME_HALF_SIZE, -FRAME_HALF_SIZE, 0.0],
 ], dtype=np.float64)
 
-# Default image dimensions
+# Default image dimensions — VADR-TS-002 §3.8 / §4.6
 IMG_WIDTH = 640
-IMG_HEIGHT = 480
+IMG_HEIGHT = 360
+
+# Default pinhole intrinsics — VADR-TS-002 §3.8
+DEFAULT_FX = 320.0
+DEFAULT_FY = 320.0
+DEFAULT_CX = 320.0
+DEFAULT_CY = 180.0
+
+# Body-to-camera tilt — VADR-TS-002 §3.8 (camera tilted 20° upward from body)
+CAMERA_TILT_DEG = 20.0
 
 
 # ============================================================
 # 3D → 2D Projection (Pinhole Camera Model)
 # ============================================================
 def project_points_to_image(points_3d, cam_pos, cam_forward, cam_up,
-                             fov_deg=90.0, img_w=IMG_WIDTH, img_h=IMG_HEIGHT):
+                             fov_deg=90.0, img_w=IMG_WIDTH, img_h=IMG_HEIGHT,
+                             fx=None, fy=None, cx=None, cy=None):
     """
     Project 3D world points to 2D pixel coordinates using a pinhole camera model.
+    Uses explicit fx/fy/cx/cy if provided (spec-exact), otherwise derives from fov.
 
     Args:
         points_3d: (N, 3) array of 3D points in world frame
@@ -114,16 +128,21 @@ def project_points_to_image(points_3d, cam_pos, cam_forward, cam_up,
     y_cam = rel @ cam_up_ortho   # up in camera
     z_cam = rel @ cam_forward    # forward (depth)
 
-    # Focal length from FOV
-    fy = (img_h / 2.0) / np.tan(np.radians(fov_deg / 2.0))
-    fx = fy  # square pixels
+    # Intrinsics: use explicit values if provided, else derive from VFoV
+    if fx is None or fy is None:
+        _fy = (img_h / 2.0) / np.tan(np.radians(fov_deg / 2.0))
+        _fx = _fy  # square pixels
+    else:
+        _fx, _fy = fx, fy
+    _cx = cx if cx is not None else img_w / 2.0
+    _cy = cy if cy is not None else img_h / 2.0
 
     # Project (pinhole)
     in_front = z_cam > 0.01  # avoid division by zero
     z_safe = np.where(in_front, z_cam, 1.0)
 
-    px = (fx * x_cam / z_safe) + img_w / 2.0
-    py = (img_h / 2.0) - (fy * y_cam / z_safe)  # flip Y (image Y goes down)
+    px = (_fx * x_cam / z_safe) + _cx
+    py = _cy - (_fy * y_cam / z_safe)  # flip Y (image Y goes down)
 
     pixels = np.stack([px, py], axis=-1)
     return pixels, in_front
@@ -237,10 +256,17 @@ class SyntheticKeypointGenerator:
     Falls back to a minimal scene if the full LSY sim isn't available.
     """
 
-    def __init__(self, sim_xml_path=None, img_w=IMG_WIDTH, img_h=IMG_HEIGHT, fov=90.0):
+    def __init__(self, sim_xml_path=None, img_w=IMG_WIDTH, img_h=IMG_HEIGHT, fov=90.0,
+                 fx=DEFAULT_FX, fy=DEFAULT_FY, cx=DEFAULT_CX, cy=DEFAULT_CY,
+                 camera_tilt_deg=CAMERA_TILT_DEG):
         self.img_w = img_w
         self.img_h = img_h
         self.fov = fov
+        # VADR-TS-002 §3.8 pinhole intrinsics
+        self.fx, self.fy = fx, fy
+        self.cx, self.cy = cx, cy
+        # VADR-TS-002 §3.8 body→camera tilt (radians)
+        self.camera_tilt_rad = np.radians(camera_tilt_deg)
 
         if not HAS_MUJOCO:
             raise RuntimeError("MuJoCo is required. Install with: pip install mujoco")
@@ -258,52 +284,48 @@ class SyntheticKeypointGenerator:
         <mujoco model="gate_scene">
           <option gravity="0 0 -9.81"/>
           <visual>
-            <global offwidth="{w}" offheight="{h}"/>
+            <!-- VADR-TS-002 §3.8: VFoV = 2*atan(cy/fy) = 2*atan(180/320) ≈ 58.36° -->
+            <global offwidth="{w}" offheight="{h}" fovy="58.36"/>
           </visual>
 
           <worldbody>
-            <light pos="0 0 3" dir="0 0 -1" diffuse="1 1 1"/>
-            <light pos="2 2 3" dir="-0.5 -0.5 -1" diffuse="0.6 0.6 0.6"/>
+            <light pos="0 0 10" dir="0 0 -1" diffuse="1 1 1"/>
+            <light pos="5 5 8" dir="-0.5 -0.5 -1" diffuse="0.6 0.6 0.6"/>
 
             <!-- Ground -->
-            <geom type="plane" size="10 10 0.1" rgba="0.3 0.3 0.3 1"/>
+            <geom type="plane" size="30 30 0.1" rgba="0.3 0.3 0.3 1"/>
 
-            <!-- Gate 1 -->
-            <body name="gate1" pos="1.0 0.0 1.0">
-              <!-- Outer frame (visual) -->
-              <geom type="box" size="0.35 0.02 0.35" rgba="1 0.5 0 1"/>
-              <!-- Opening markers (thin frame pieces) -->
-              <geom type="box" pos="0.275 0 0" size="0.075 0.025 0.35" rgba="0.8 0.2 0.1 1"/>
-              <geom type="box" pos="-0.275 0 0" size="0.075 0.025 0.35" rgba="0.8 0.2 0.1 1"/>
-              <geom type="box" pos="0 0 0.275" size="0.35 0.025 0.075" rgba="0.8 0.2 0.1 1"/>
-              <geom type="box" pos="0 0 -0.275" size="0.35 0.025 0.075" rgba="0.8 0.2 0.1 1"/>
+            <!-- Gate 1 — VADR-TS-002 §3.7: outer 2.7m, inner 1.5m opening, depth 0.26m
+                 Hollow rim: 4 bars (each 0.6m thick) framing the 1.5m hole -->
+            <body name="gate1" pos="4.0 0.0 1.5">
+              <geom type="box" pos=" 1.05 0  0   " size="0.3  0.13 1.35" rgba="1 0.5 0 1"/>
+              <geom type="box" pos="-1.05 0  0   " size="0.3  0.13 1.35" rgba="1 0.5 0 1"/>
+              <geom type="box" pos=" 0    0  1.05" size="0.75 0.13 0.3 " rgba="1 0.5 0 1"/>
+              <geom type="box" pos=" 0    0 -1.05" size="0.75 0.13 0.3 " rgba="1 0.5 0 1"/>
             </body>
 
             <!-- Gate 2 -->
-            <body name="gate2" pos="-0.5 1.5 0.8" euler="0 0 45">
-              <geom type="box" size="0.35 0.02 0.35" rgba="0 0.8 0.2 1"/>
-              <geom type="box" pos="0.275 0 0" size="0.075 0.025 0.35" rgba="0.1 0.6 0.1 1"/>
-              <geom type="box" pos="-0.275 0 0" size="0.075 0.025 0.35" rgba="0.1 0.6 0.1 1"/>
-              <geom type="box" pos="0 0 0.275" size="0.35 0.025 0.075" rgba="0.1 0.6 0.1 1"/>
-              <geom type="box" pos="0 0 -0.275" size="0.35 0.025 0.075" rgba="0.1 0.6 0.1 1"/>
+            <body name="gate2" pos="-2.0 6.0 2.0" euler="0 0 45">
+              <geom type="box" pos=" 1.05 0  0   " size="0.3  0.13 1.35" rgba="0 0.8 0.2 1"/>
+              <geom type="box" pos="-1.05 0  0   " size="0.3  0.13 1.35" rgba="0 0.8 0.2 1"/>
+              <geom type="box" pos=" 0    0  1.05" size="0.75 0.13 0.3 " rgba="0 0.8 0.2 1"/>
+              <geom type="box" pos=" 0    0 -1.05" size="0.75 0.13 0.3 " rgba="0 0.8 0.2 1"/>
             </body>
 
             <!-- Gate 3 -->
-            <body name="gate3" pos="2.0 -1.0 1.2" euler="0 0 -30">
-              <geom type="box" size="0.35 0.02 0.35" rgba="0.2 0.3 1 1"/>
-              <geom type="box" pos="0.275 0 0" size="0.075 0.025 0.35" rgba="0.1 0.2 0.8 1"/>
-              <geom type="box" pos="-0.275 0 0" size="0.075 0.025 0.35" rgba="0.1 0.2 0.8 1"/>
-              <geom type="box" pos="0 0 0.275" size="0.35 0.025 0.075" rgba="0.1 0.2 0.8 1"/>
-              <geom type="box" pos="0 0 -0.275" size="0.35 0.025 0.075" rgba="0.1 0.2 0.8 1"/>
+            <body name="gate3" pos="8.0 -4.0 2.5" euler="0 0 -30">
+              <geom type="box" pos=" 1.05 0  0   " size="0.3  0.13 1.35" rgba="0.2 0.3 1 1"/>
+              <geom type="box" pos="-1.05 0  0   " size="0.3  0.13 1.35" rgba="0.2 0.3 1 1"/>
+              <geom type="box" pos=" 0    0  1.05" size="0.75 0.13 0.3 " rgba="0.2 0.3 1 1"/>
+              <geom type="box" pos=" 0    0 -1.05" size="0.75 0.13 0.3 " rgba="0.2 0.3 1 1"/>
             </body>
 
             <!-- Gate 4 -->
-            <body name="gate4" pos="0.0 -1.5 0.7" euler="0 0 90">
-              <geom type="box" size="0.35 0.02 0.35" rgba="0.9 0.9 0 1"/>
-              <geom type="box" pos="0.275 0 0" size="0.075 0.025 0.35" rgba="0.7 0.7 0.0 1"/>
-              <geom type="box" pos="-0.275 0 0" size="0.075 0.025 0.35" rgba="0.7 0.7 0.0 1"/>
-              <geom type="box" pos="0 0 0.275" size="0.35 0.025 0.075" rgba="0.7 0.7 0.0 1"/>
-              <geom type="box" pos="0 0 -0.275" size="0.35 0.025 0.075" rgba="0.7 0.7 0.0 1"/>
+            <body name="gate4" pos="0.0 -6.0 1.5" euler="0 0 90">
+              <geom type="box" pos=" 1.05 0  0   " size="0.3  0.13 1.35" rgba="0.9 0.9 0 1"/>
+              <geom type="box" pos="-1.05 0  0   " size="0.3  0.13 1.35" rgba="0.9 0.9 0 1"/>
+              <geom type="box" pos=" 0    0  1.05" size="0.75 0.13 0.3 " rgba="0.9 0.9 0 1"/>
+              <geom type="box" pos=" 0    0 -1.05" size="0.75 0.13 0.3 " rgba="0.9 0.9 0 1"/>
             </body>
           </worldbody>
         </mujoco>
@@ -364,12 +386,12 @@ class SyntheticKeypointGenerator:
         gate_pos = gate["pos"]
         gate_yaw = gate["yaw"]
 
-        # Random distance from gate (0.5 to 4.0 meters)
-        dist = random.uniform(0.5, 4.0)
+        # Random distance from gate (scaled for 2.7m gates per spec §3.7)
+        dist = random.uniform(2.0, 15.0)
 
-        # Random lateral and vertical offset
-        lateral = random.uniform(-1.5, 1.5)
-        vertical = random.uniform(-0.8, 0.8)
+        # Random lateral and vertical offset (also scaled for larger gates)
+        lateral = random.uniform(-3.0, 3.0)
+        vertical = random.uniform(-1.5, 2.0)
 
         # Camera position: in front of gate + offsets
         # Gate faces along its local Y axis after yaw rotation
@@ -387,20 +409,46 @@ class SyntheticKeypointGenerator:
         ])
         target = gate_pos + jitter
 
-        cam_forward = target - cam_pos
+        # Pre-compensate body aim: point body so that AFTER 20° upward tilt,
+        # the camera lands somewhere on/near the gate. This avoids gates
+        # falling out of frame entirely when the tilt is applied.
+        # Aim body at a point ~dist*tan(tilt) BELOW the gate (with jitter for diversity).
+        dist_to_gate = np.linalg.norm(target - cam_pos)
+        precompensate = dist_to_gate * np.tan(self.camera_tilt_rad)
+        # Add randomized vertical offset so gate appears at varied frame heights
+        vertical_aim_offset = -precompensate + random.uniform(-precompensate * 0.4,
+                                                                precompensate * 0.6)
+        target_aimed = target.copy()
+        target_aimed[2] += vertical_aim_offset
+
+        body_forward = target_aimed - cam_pos
+        body_forward = body_forward / np.linalg.norm(body_forward)
+        world_up = np.array([0.0, 0.0, 1.0])
+
+        # Apply 20° upward camera tilt (VADR-TS-002 §3.8)
+        # Rotate body_forward about the body's right axis by +tilt to pitch camera up
+        body_right = np.cross(body_forward, world_up)
+        body_right = body_right / max(np.linalg.norm(body_right), 1e-9)
+        tilt = self.camera_tilt_rad
+        # Rodrigues' rotation: rotate body_forward about body_right by +tilt
+        cam_forward = (body_forward * np.cos(tilt)
+                       + np.cross(body_right, body_forward) * np.sin(tilt)
+                       + body_right * np.dot(body_right, body_forward) * (1 - np.cos(tilt)))
         cam_forward = cam_forward / np.linalg.norm(cam_forward)
-        cam_up = np.array([0.0, 0.0, 1.0])
+        # Camera up is also rotated (perpendicular to forward, in the vertical plane)
+        cam_up = np.cross(body_right, cam_forward)
+        cam_up = cam_up / np.linalg.norm(cam_up)
 
         return cam_pos, cam_forward, cam_up, gate
 
     def _randomize_lighting(self):
         """Randomize scene lighting for domain randomization."""
         for i in range(self.model.nlight):
-            # Random light position
+            # Random light position (scaled for larger scene)
             self.model.light_pos[i] = [
-                random.uniform(-3, 3),
-                random.uniform(-3, 3),
-                random.uniform(1, 5),
+                random.uniform(-10, 10),
+                random.uniform(-10, 10),
+                random.uniform(3, 12),
             ]
             # Random light color/intensity
             intensity = random.uniform(0.3, 1.0)
@@ -478,14 +526,16 @@ class SyntheticKeypointGenerator:
                 GATE_FRAME_CORNERS_LOCAL, gate_pos, gate_yaw
             )
 
-            # Project to image
+            # Project to image using spec-exact pinhole intrinsics
             opening_pixels, opening_in_front = project_points_to_image(
                 opening_world, cam_pos, cam_forward, cam_up,
-                fov_deg=self.fov, img_w=self.img_w, img_h=self.img_h
+                fov_deg=self.fov, img_w=self.img_w, img_h=self.img_h,
+                fx=self.fx, fy=self.fy, cx=self.cx, cy=self.cy,
             )
             frame_pixels, frame_in_front = project_points_to_image(
                 frame_world, cam_pos, cam_forward, cam_up,
-                fov_deg=self.fov, img_w=self.img_w, img_h=self.img_h
+                fov_deg=self.fov, img_w=self.img_w, img_h=self.img_h,
+                fx=self.fx, fy=self.fy, cx=self.cx, cy=self.cy,
             )
 
             # Generate label

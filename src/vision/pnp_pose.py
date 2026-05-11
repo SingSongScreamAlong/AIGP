@@ -4,13 +4,19 @@ PnP Pose Estimation - Gate 3D Position from Corner Keypoints
 import numpy as np
 import cv2
 
-GATE_OPENING_HALF_SIZE=0.2
-GATE_CORNERS_3D=np.array([[-0.2,0.2,0.0],[0.2,0.2,0.0],[0.2,-0.2,0.0],[-0.2,-0.2,0.0]],dtype=np.float64)
+# VADR-TS-002 §3.7: inner opening 1.5m×1.5m → half-size 0.75m
+GATE_OPENING_HALF_SIZE=0.75
+GATE_CORNERS_3D=np.array([[-0.75,0.75,0.0],[0.75,0.75,0.0],[0.75,-0.75,0.0],[-0.75,-0.75,0.0]],dtype=np.float64)
 
 class GatePoseEstimator:
-    def __init__(self,camera_matrix=None,dist_coeffs=None,img_w=640,img_h=480,fov_deg=90.0,gate_size=None):
+    # VADR-TS-002 §3.8 spec-exact intrinsics
+    SPEC_FX=320.0; SPEC_FY=320.0; SPEC_CX=320.0; SPEC_CY=180.0
+    def __init__(self,camera_matrix=None,dist_coeffs=None,img_w=640,img_h=360,fov_deg=90.0,gate_size=None):
         if camera_matrix is not None:
             self.camera_matrix=np.array(camera_matrix,dtype=np.float64)
+        elif img_w==640 and img_h==360:
+            # Use spec-exact intrinsics for the official 640×360 stream
+            self.camera_matrix=np.array([[self.SPEC_FX,0,self.SPEC_CX],[0,self.SPEC_FY,self.SPEC_CY],[0,0,1]],dtype=np.float64)
         else:
             fy=(img_h/2.0)/np.tan(np.radians(fov_deg/2.0));fx=fy
             self.camera_matrix=np.array([[fx,0,img_w/2.0],[0,fy,img_h/2.0],[0,0,1]],dtype=np.float64)
