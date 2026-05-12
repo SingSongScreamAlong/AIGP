@@ -114,7 +114,9 @@ def phase_data(num_images: int = 5000, use_keypoints: bool = True) -> str | None
     try:
         if use_keypoints:
             from generate_data_keypoints import SyntheticKeypointGenerator
-            gen = SyntheticKeypointGenerator(img_w=640, img_h=480, fov=90.0)
+            # VADR-TS-002 §3.8: 640×360, fx=fy=320, cx=320, cy=180.
+            # VFoV from fy=320, h=360 → 2·atan(180/320) ≈ 58.36°.
+            gen = SyntheticKeypointGenerator(img_w=640, img_h=360, fov=58.36)
             # Use cycle prefix to avoid overwriting existing files
             yaml_path = gen.generate_dataset(
                 str(_DATASET_DIR), num_samples=num_images, train_split=0.85,
@@ -122,7 +124,7 @@ def phase_data(num_images: int = 5000, use_keypoints: bool = True) -> str | None
             )
         else:
             from generate_data import SyntheticDataGenerator
-            gen = SyntheticDataGenerator(width=640, height=480)
+            gen = SyntheticDataGenerator(width=640, height=360)
             yaml_path = gen.generate_dataset(
                 str(_DATASET_DIR), num_images=num_images,
                 train_split=0.85, randomize=True,
@@ -140,13 +142,13 @@ def phase_data(num_images: int = 5000, use_keypoints: bool = True) -> str | None
         try:
             if use_keypoints:
                 from generate_data_keypoints import SyntheticKeypointGenerator
-                gen = SyntheticKeypointGenerator(img_w=640, img_h=480, fov=90.0)
+                gen = SyntheticKeypointGenerator(img_w=640, img_h=360, fov=58.36)
                 yaml_path = gen.generate_dataset(
                     str(_DATASET_DIR), num_samples=num_images, train_split=0.85,
                 )
             else:
                 from generate_data import SyntheticDataGenerator
-                gen = SyntheticDataGenerator(width=640, height=480)
+                gen = SyntheticDataGenerator(width=640, height=360)
                 yaml_path = gen.generate_dataset(
                     str(_DATASET_DIR), num_images=num_images,
                     train_split=0.85, randomize=True,
@@ -167,7 +169,7 @@ def phase_train(
     data_yaml: str | None = None,
     epochs: int = 30,
     batch_size: int = 8,
-    base_model: str = "yolov8n.pt",
+    base_model: str = "yolov8n-pose.pt",
 ) -> dict:
     """Train YOLOv8n on CPU. Slow but produces a real model."""
     log = _OUT / "train.log"
