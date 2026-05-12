@@ -69,6 +69,11 @@ except ImportError:
 class DCLSpecAdapter:
     """Live VADR-TS-002 adapter."""
 
+    # Deliberately absent: SimCapability.RELIABLE_POSE — VADR-TS-002 §4.3
+    # ships only ATTITUDE + HIGHRES_IMU. Position must be fused from IMU
+    # + vision; get_state().pos_ned is a stub (0,0,0). RaceLoop honors
+    # this by deferring its first-tick PoseFusion seed to the first
+    # vision fix instead of seeding from adapter truth.
     capabilities = (
         SimCapability.ATTITUDE
         | SimCapability.VELOCITY_NED

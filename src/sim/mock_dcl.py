@@ -71,6 +71,7 @@ class MockDCLAdapter:
         | SimCapability.CAMERA_RGB
         | SimCapability.IMU
         | SimCapability.RESET
+        | SimCapability.RELIABLE_POSE   # gym-style: pose is in observation
     )
 
     DEFAULT_FRAME_H = 480

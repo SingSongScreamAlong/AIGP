@@ -79,6 +79,16 @@ class SimCapability(Flag):
     RESET           = auto()   # reset() actually restores t=0 state
     WALLCLOCK_PACED = auto()   # sim runs in real time (PX4 SITL does)
     IMU             = auto()   # get_imu() returns raw accelerometer + gyro readings
+    RELIABLE_POSE   = auto()   # get_state().pos_ned + vel_ned reflect ground truth.
+                               # Backends that derive pose from a sim-side truth feed
+                               # (PX4 LOCAL_POSITION_NED, mock kinematic integrator,
+                               # gym observations) set this. Backends that DON'T
+                               # provide pose telemetry (DCLSpecAdapter — VADR-TS-002
+                               # ships only ATTITUDE + HIGHRES_IMU, leaving the
+                               # contestant to fuse pose themselves) MUST clear it.
+                               # Race loop uses this to decide whether the first-
+                               # tick PoseFusion seed should come from adapter truth
+                               # or be deferred to the first vision fix.
 
 
 @dataclass
@@ -183,6 +193,7 @@ class PX4SITLAdapter:
         | SimCapability.ATTITUDE
         | SimCapability.ARM_ACTION
         | SimCapability.WALLCLOCK_PACED
+        | SimCapability.RELIABLE_POSE   # PX4 LOCAL_POSITION_NED via mavsdk telemetry
     )
 
     def __init__(self, connection_string: str = "udpin://0.0.0.0:14540"):
@@ -381,6 +392,7 @@ class DCLSimAdapter:
         | SimCapability.CAMERA_RGB
         | SimCapability.IMU
         | SimCapability.RESET
+        | SimCapability.RELIABLE_POSE   # gym observations include ground-truth pose
     )
 
     def __init__(self, scenario: str = "round1_simple", seed: Optional[int] = None):

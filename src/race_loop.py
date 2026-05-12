@@ -708,13 +708,24 @@ class RaceLoop:
 
         # --- Optional pose fusion ---
         if self.pose_fusion is not None:
-            # Drive IMU first so the filter is up-to-date before the
-            # vision update.
-            await self._ingest_imu_async()
+            from sim.adapter import SimCapability as _SC
+            has_reliable_pose = (
+                _SC.RELIABLE_POSE in self.adapter.capabilities
+            )
             picked = self._pick_detection(detections)
             # Seed the filter from adapter truth if it hasn't been
-            # initialized yet (first tick). Caller can pre-seed too.
-            if not self.pose_fusion.is_seeded:
+            # initialized yet (first tick) AND the adapter advertises
+            # RELIABLE_POSE. Backends without RELIABLE_POSE (e.g.
+            # DCLSpecAdapter — VADR-TS-002 has no LOCAL_POSITION_NED)
+            # would seed the filter at a confidently-wrong (0,0,0)
+            # pose, which then chi-squared-rejects the legitimate
+            # vision fixes that try to correct it. For those backends
+            # we defer seeding to PoseFusion.on_vision_pose's built-in
+            # first-fix bootstrap (pose_fusion.py:176-185), which seeds
+            # the filter at the back-projected drone-NED of the first
+            # detection — i.e., exactly where the drone actually is.
+            # Caller can also pre-seed externally.
+            if not self.pose_fusion.is_seeded and has_reliable_pose:
                 import numpy as np
                 self.pose_fusion.seed(
                     p=np.asarray(state.pos_ned, dtype=float),
@@ -722,6 +733,20 @@ class RaceLoop:
                     yaw_rad=float(state.att_rad[2]),
                     bias_sigma=0.1,    # allow mild bias absorption
                 )
+            # IMU ingestion order matters:
+            #   * RELIABLE_POSE backend: seed-from-truth happened above,
+            #     so on_imu predicts forward from a correct pose. Drive
+            #     IMU first so the filter is up-to-date before the
+            #     vision update on this same tick.
+            #   * Unreliable-pose backend (dcl_spec): if we drove on_imu
+            #     before the first vision fix, on_imu's fallback would
+            #     auto-seed at (0,0,0) (pose_fusion.py:148-153), exactly
+            #     the bug RELIABLE_POSE was added to prevent. So we hold
+            #     IMU until vision has seeded the filter, then start
+            #     ingesting from the next tick onward. The first vision
+            #     fix is the only seed source.
+            if has_reliable_pose or self.pose_fusion.is_seeded:
+                await self._ingest_imu_async()
             if picked is not None and picked.confidence > 0.0:
                 _, _, yaw_now = self.pose_fusion.pose()
                 self._ingest_vision_from_detection(picked, yaw_now)

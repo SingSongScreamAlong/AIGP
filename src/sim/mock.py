@@ -59,6 +59,7 @@ class MockKinematicAdapter:
         | SimCapability.POSITION_NED
         | SimCapability.IMU
         | SimCapability.ARM_ACTION
+        | SimCapability.RELIABLE_POSE   # mock integrates pose internally
         | SimCapability.RESET
         | SimCapability.WALLCLOCK_PACED
     )
