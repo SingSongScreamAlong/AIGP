@@ -515,7 +515,15 @@ def make_adapter(backend: str, **kwargs) -> SimAdapter:
         # DCL SDK is wired into DCLSimAdapter.
         from .mock_dcl import MockDCLAdapter
         return MockDCLAdapter(**kwargs)  # type: ignore[return-value]
+    if backend == "dcl_spec":
+        # VADR-TS-002 §4 / §4.6 wire-protocol adapter. Speaks the spec's
+        # MAVLink message subset over UDP plus the chunked JPEG stream on
+        # UDP:5600. Use this against a real DCL simulator (or against
+        # mock_dcl_sim.py for end-to-end tests on Mac).
+        from .dcl_spec_adapter import DCLSpecAdapter
+        return DCLSpecAdapter(**kwargs)  # type: ignore[return-value]
     raise ValueError(
         f"Unknown sim backend: {backend!r}. "
-        f"Known: 'px4_sitl', 'dcl', 'mock_kinematic', 'mock_dcl'."
+        f"Known: 'px4_sitl', 'dcl', 'mock_kinematic', 'mock_dcl', "
+        f"'dcl_spec'."
     )

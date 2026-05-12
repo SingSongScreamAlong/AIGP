@@ -60,6 +60,11 @@ def build_adapter(backend: str, connection_string: str):
         if backend == "px4_sitl":
             return make_adapter("px4_sitl", connection_string=connection_string)
         return make_adapter("dcl")
+    if backend == "dcl_spec":
+        # VADR-TS-002 §4 / §4.6 wire-protocol backend. MAVLink is on
+        # `connection_string`, vision stream is fixed at the spec port.
+        from sim.adapter import make_adapter
+        return make_adapter("dcl_spec", mavlink_conn=connection_string)
     raise ValueError(f"Unknown backend {backend!r}")
 
 
@@ -154,11 +159,14 @@ def main(argv=None) -> int:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument("--backend",
-                   choices=("px4_sitl", "dcl", "mock", "mock_kinematic", "mock_dcl"),
+                   choices=("px4_sitl", "dcl", "dcl_spec",
+                            "mock", "mock_kinematic", "mock_dcl"),
                    default="mock",
                    help="Sim backend to fly against. mock_kinematic synthesizes "
                         "an IMU stream (needed for --fusion). mock_dcl mimics "
-                        "DCL's expected shape for pre-landing smoke tests.")
+                        "DCL's expected shape for pre-landing smoke tests. "
+                        "dcl_spec speaks VADR-TS-002 §4/§4.6 (MAVLink + UDP "
+                        "JPEG) against a spec-compliant simulator.")
     p.add_argument("--detector", choices=("virtual", "yolo_pnp", "classical"), default="virtual",
                    help="Perception backend. 'classical' uses HSV color "
                         "thresholding for VQ1 highlighted gates.")
