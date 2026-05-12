@@ -171,6 +171,9 @@ class MockDCLSpecSim:
         vision_host: str = "127.0.0.1",
         jpeg_quality: int = 80,
         frame_renderer: Optional[FrameRenderer] = None,
+        course_gates_ned: Optional[list] = None,
+        initial_pos_ned: Optional[tuple] = None,
+        initial_yaw_rad: float = 0.0,
         verbose: bool = True,
     ):
         if not HAS_CV2:
@@ -180,10 +183,26 @@ class MockDCLSpecSim:
         self._vid_port = vision_port
         self._vid_host = vision_host
         self._jpeg_q = jpeg_quality
-        self._renderer = frame_renderer or self._default_renderer
         self._verbose = verbose
 
+        # If the caller supplied gate NED positions, build a CourseRenderer
+        # that renders the actual drone-eye view of the course. The
+        # renderer itself is constructed lazily in the video thread —
+        # MuJoCo's OpenGL context on macOS is thread-affine, so the
+        # context must be created on the same thread that calls render().
+        # Otherwise fall back to the synthetic color-bar HUD (useful for
+        # protocol-only smoke tests where we don't have mujoco available).
+        self._course_renderer = None
+        self._course_gates_ned = course_gates_ned
+        if course_gates_ned is not None:
+            self._renderer = self._course_render_wrapper
+        else:
+            self._renderer = frame_renderer or self._default_renderer
+
         self._drone = _DroneState()
+        if initial_pos_ned is not None:
+            self._drone.pos = np.asarray(initial_pos_ned, dtype=float)
+        self._drone.yaw = float(initial_yaw_rad)
         self._mav: Optional[mavutil.mavfile] = None
         self._vid_sock: Optional[socket.socket] = None
         self._stop = threading.Event()
@@ -373,6 +392,7 @@ class MockDCLSpecSim:
                 self._drone.cmd_mode = "velocity"
 
     def _video_loop(self):
+        import traceback
         period = 1.0 / self.VIDEO_HZ
         next_t = time.monotonic()
         while not self._stop.is_set() and self._vid_sock is not None:
@@ -381,27 +401,59 @@ class MockDCLSpecSim:
                 self._stop.wait(next_t - now)
                 continue
             next_t += period
-            img = self._renderer(self._drone, self._frame_idx,
-                                 (self.IMG_W, self.IMG_H))
-            ok, buf = cv2.imencode(
-                ".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, self._jpeg_q]
-            )
-            if not ok:
-                continue
-            packets = build_packets(
-                frame_id=self._frame_idx & 0xFFFFFFFF,
-                jpeg_bytes=buf.tobytes(),
-                sim_time_ns=int(now * 1e9),
-                max_payload_size=1400,
-            )
-            for p in packets:
-                try:
-                    self._vid_sock.sendto(p, (self._vid_host, self._vid_port))
-                except OSError:
-                    break
-            self._frame_idx += 1
+            try:
+                img = self._renderer(self._drone, self._frame_idx,
+                                     (self.IMG_W, self.IMG_H))
+                ok, buf = cv2.imencode(
+                    ".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, self._jpeg_q]
+                )
+                if not ok:
+                    continue
+                packets = build_packets(
+                    frame_id=self._frame_idx & 0xFFFFFFFF,
+                    jpeg_bytes=buf.tobytes(),
+                    sim_time_ns=int(now * 1e9),
+                    max_payload_size=1400,
+                )
+                for p in packets:
+                    try:
+                        self._vid_sock.sendto(p, (self._vid_host, self._vid_port))
+                    except OSError:
+                        break
+                self._frame_idx += 1
+            except Exception:
+                if self._verbose:
+                    print("[mock_dcl_spec] video loop exception:")
+                    traceback.print_exc()
+                # Don't kill the loop — keep trying so the user sees
+                # repeated errors instead of a silently dead thread.
+                self._stop.wait(0.1)
 
     # ─────────────────────────── default renderer ───────────────────────────
+
+    def _course_render_wrapper(self, drone: _DroneState, idx: int,
+                                size: tuple) -> np.ndarray:
+        """Render the actual drone-eye view from the CourseRenderer.
+
+        Adds a tiny HUD overlay so we can eyeball whether the drone is
+        flying through gates without a debugger."""
+        if self._course_renderer is None:
+            # Lazy-init on the calling thread so MuJoCo's OpenGL context
+            # is owned by the same thread that will call render().
+            from .mock_renderer import CourseRenderer
+            self._course_renderer = CourseRenderer(
+                self._course_gates_ned, img_w=size[0], img_h=size[1],
+            )
+        img = self._course_renderer.render(drone.pos, drone.yaw)
+        # Mini HUD bottom-left.
+        hud = (
+            f"pos=({drone.pos[0]:+.1f},{drone.pos[1]:+.1f},{drone.pos[2]:+.1f}) "
+            f"yaw={math.degrees(drone.yaw):+.0f}deg"
+        )
+        cv2.putText(img, hud, (8, size[1] - 8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1,
+                    cv2.LINE_AA)
+        return img
 
     def _default_renderer(self, drone: _DroneState, idx: int,
                           size: tuple) -> np.ndarray:
@@ -431,12 +483,38 @@ def main():
     p.add_argument("--vision-port", type=int, default=5600)
     p.add_argument("--vision-host", default="127.0.0.1")
     p.add_argument("--quality", type=int, default=80)
+    p.add_argument("--course", default=None,
+                   help="Render this course's gates (e.g. sprint, technical, "
+                        "mixed). Without this flag the sim emits color-bar "
+                        "frames — fine for protocol-only tests.")
     args = p.parse_args()
+
+    course_gates = None
+    init_pos = None
+    init_yaw = 0.0
+    if args.course:
+        # Lazy import so a protocol-only run doesn't pay the import cost.
+        import sys
+        from pathlib import Path
+        _ROOT = str(Path(__file__).resolve().parent.parent.parent)
+        if _ROOT not in sys.path:
+            sys.path.insert(0, _ROOT)
+        from src.courses import get_course  # type: ignore
+        course_gates = get_course(args.course)
+        # Place the drone 6 m behind gate 0 facing +N, at gate 0's altitude.
+        g0 = course_gates[0]
+        init_pos = (g0[0] - 6.0, g0[1], g0[2])
+        init_yaw = math.atan2(g0[1] - init_pos[1], g0[0] - init_pos[0])
+        print(f"[mock_dcl_spec] course={args.course!r}: {len(course_gates)} gates, "
+              f"start at {init_pos}")
 
     sim = MockDCLSpecSim(
         mavlink_port=args.mavlink_port, mavlink_host=args.mavlink_host,
         vision_port=args.vision_port, vision_host=args.vision_host,
         jpeg_quality=args.quality,
+        course_gates_ned=course_gates,
+        initial_pos_ned=init_pos,
+        initial_yaw_rad=init_yaw,
     )
     sim.start()
     try:
