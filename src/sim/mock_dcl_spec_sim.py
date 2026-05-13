@@ -440,7 +440,7 @@ class MockDCLSpecSim:
         if self._course_renderer is None:
             # Lazy-init on the calling thread so MuJoCo's OpenGL context
             # is owned by the same thread that will call render().
-            from .mock_renderer import CourseRenderer
+            from sim.mock_renderer import CourseRenderer
             self._course_renderer = CourseRenderer(
                 self._course_gates_ned, img_w=size[0], img_h=size[1],
             )
