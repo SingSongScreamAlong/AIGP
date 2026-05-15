@@ -246,6 +246,108 @@ def corners_to_yolo_keypoints(opening_pixels, opening_visible, frame_pixels, fra
 
 
 # ============================================================
+# Domain-randomization post-processor
+# ============================================================
+def _domain_randomize(img: np.ndarray) -> np.ndarray:
+    """Inject visual variability MuJoCo can't (sky, color jitter, blur, noise).
+
+    The minimal MuJoCo standalone scene has no skybox, so unrendered
+    pixels come back as pure black (0,0,0). A model trained on that
+    overfits to "hollow rim against black void" and fails the moment a
+    real renderer paints any kind of background — see the Mac
+    integration test against CourseRenderer where the same model that
+    scored mAP50=0.93 on synthetic val got 0/10 gates because
+    CourseRenderer paints a blue sky gradient.
+
+    This function runs once per sample, after MuJoCo render, before
+    label projection (which is unaffected — labels are computed in
+    pixel space and don't care about color). Steps:
+      1. Replace near-black background pixels with a random sky-like
+         gradient (vertical, varying hue from blue→gray→warm).
+      2. HSV jitter (hue ±20°, sat ±40%, val ±25%) on the whole image —
+         pushes the model to rely on geometry instead of color.
+      3. Optional brightness/contrast shift (±25%).
+      4. Optional gamma curve (γ ∈ [0.6, 1.6]).
+      5. Optional gaussian blur (camera defocus / motion blur proxy).
+      6. Optional gaussian noise (sensor / JPEG-comp proxy).
+    Each optional step fires with p=0.5 so a fraction of samples stays
+    crisp.
+    """
+    h, w = img.shape[:2]
+
+    # ── 1. Background replacement ───────────────────────────────
+    # Mask near-black pixels (the unrendered MuJoCo background).
+    # Using grayscale < 12 so we don't accidentally mask very dark
+    # gate parts; gates are colored geoms, ground is a colored geom too.
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    bg_mask = gray < 12
+
+    if bg_mask.any():
+        # Build a vertical gradient from `top_color` to `bot_color`.
+        # Mode-mixed palette: blue sky, overcast, warehouse, sunset, dim.
+        mode = random.random()
+        if mode < 0.45:           # blue sky
+            top = np.array([random.randint(60, 130), random.randint(120, 180), random.randint(180, 240)])
+            bot = np.array([random.randint(150, 220), random.randint(180, 230), random.randint(210, 250)])
+        elif mode < 0.70:         # overcast / fog
+            v = random.randint(140, 210)
+            jit = lambda: random.randint(-15, 15)
+            top = np.clip([v + jit(), v + jit(), v + jit()], 0, 255)
+            bot = np.clip([v + 30 + jit(), v + 30 + jit(), v + 30 + jit()], 0, 255)
+        elif mode < 0.85:         # indoor / warehouse — neutral mid grays
+            v = random.randint(50, 120)
+            top = np.array([v, v, v]) + np.random.randint(-10, 10, 3)
+            bot = np.array([v + 40, v + 40, v + 40]) + np.random.randint(-10, 10, 3)
+        elif mode < 0.95:         # sunset / warm
+            top = np.array([random.randint(180, 240), random.randint(80, 150), random.randint(40, 100)])
+            bot = np.array([random.randint(120, 200), random.randint(60, 120), random.randint(30, 90)])
+        else:                     # near-black (preserve some original-style frames)
+            v = random.randint(0, 30)
+            top = np.array([v, v, v])
+            bot = np.array([v + 10, v + 10, v + 10])
+
+        # Linear vertical gradient.
+        rows = np.linspace(0.0, 1.0, h, dtype=np.float32)[:, None]
+        sky = (top[None, None, :] * (1 - rows[:, :, None]) +
+               bot[None, None, :] *      rows[:, :, None])
+        sky = np.broadcast_to(sky, (h, w, 3)).astype(np.uint8)
+        img = np.where(bg_mask[:, :, None], sky, img)
+
+    # ── 2. HSV jitter ───────────────────────────────────────────
+    # Force model to rely on geometry over color.
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV).astype(np.int32)
+    hsv[..., 0] = (hsv[..., 0] + random.randint(-20, 20)) % 180
+    hsv[..., 1] = np.clip(hsv[..., 1] * random.uniform(0.6, 1.4), 0, 255)
+    hsv[..., 2] = np.clip(hsv[..., 2] * random.uniform(0.75, 1.25), 0, 255)
+    img = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
+
+    # ── 3. Brightness / contrast (alpha·x + β) ────────────────
+    if random.random() < 0.5:
+        alpha = random.uniform(0.75, 1.25)
+        beta = random.randint(-25, 25)
+        img = np.clip(img.astype(np.float32) * alpha + beta, 0, 255).astype(np.uint8)
+
+    # ── 4. Gamma curve ───────────────────────────────────────
+    if random.random() < 0.5:
+        gamma = random.uniform(0.6, 1.6)
+        lut = np.clip(((np.arange(256) / 255.0) ** (1.0 / gamma)) * 255, 0, 255).astype(np.uint8)
+        img = cv2.LUT(img, lut)
+
+    # ── 5. Gaussian blur ─────────────────────────────────────
+    if random.random() < 0.3:
+        k = random.choice([3, 5])  # small kernels only
+        img = cv2.GaussianBlur(img, (k, k), 0)
+
+    # ── 6. Gaussian noise ────────────────────────────────────
+    if random.random() < 0.3:
+        sigma = random.uniform(2.0, 12.0)
+        noise = np.random.normal(0, sigma, img.shape).astype(np.float32)
+        img = np.clip(img.astype(np.float32) + noise, 0, 255).astype(np.uint8)
+
+    return img
+
+
+# ============================================================
 # Synthetic Data Generator (Standalone — no sim dependency)
 # ============================================================
 class SyntheticKeypointGenerator:
@@ -459,7 +561,15 @@ class SyntheticKeypointGenerator:
             ]
 
     def _randomize_gate_colors(self):
-        """Randomize gate colors for domain randomization."""
+        """Randomize gate AND environment colors for domain randomization.
+
+        The Mac CourseRenderer paints a sky-blue gradient + checker floor;
+        a real DCL frame paints something else again. Training on a single
+        rendering style overfits the perception model to that style. Here
+        we vary every visual aspect MuJoCo controls per-sample, then
+        post-render augmentation (in generate_sample) handles the
+        background-replacement / color-jitter that MuJoCo can't.
+        """
         for i in range(self.model.ngeom):
             name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, i)
             if name and "gate" in str(name).lower():
@@ -470,15 +580,15 @@ class SyntheticKeypointGenerator:
                     1.0,
                 ]
 
-        # Also randomize ground color occasionally
-        if random.random() < 0.3:
-            ground_id = 0  # Usually the first geom
-            self.model.geom_rgba[ground_id] = [
-                random.uniform(0.1, 0.5),
-                random.uniform(0.1, 0.5),
-                random.uniform(0.1, 0.5),
-                1.0,
-            ]
+        # Aggressive ground randomization (was 30% chance, narrow palette).
+        # Gym-style floors range from light beige to dark concrete to grass.
+        ground_id = 0
+        self.model.geom_rgba[ground_id] = [
+            random.uniform(0.10, 0.85),
+            random.uniform(0.10, 0.85),
+            random.uniform(0.10, 0.85),
+            1.0,
+        ]
 
     def render_from_camera(self, cam_pos, cam_forward, cam_up):
         """Render the scene from a given camera pose."""
@@ -510,6 +620,15 @@ class SyntheticKeypointGenerator:
 
         cam_pos, cam_forward, cam_up, target_gate = self._randomize_camera_pose()
         frame = self.render_from_camera(cam_pos, cam_forward, cam_up)
+
+        # Domain-randomization post-pass: replace black void with random
+        # sky, jitter color/brightness, optionally blur+noise. This makes
+        # the model robust to wildly different visual styles (Mac
+        # CourseRenderer, real DCL, real-world). Labels are unaffected
+        # because projection happens below in pixel-space, independent
+        # of pixel values.
+        if randomize:
+            frame = _domain_randomize(frame)
 
         # Generate labels for ALL visible gates
         labels = []
